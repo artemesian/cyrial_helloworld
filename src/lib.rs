@@ -11,10 +11,7 @@ use solana_program::{
     program::{invoke},
 };
 
-use spl_token::{
-    instruction::*,
-
-};
+use spl_token::{};
 
 use solana_sdk::{signature::Keypair, signer::Signer};
 use std::str::FromStr;
