@@ -11,7 +11,7 @@ use solana_program::{
     program::{invoke},
 };
 
-use spl_token::instruction::*;
+use spl_token::{instruction::*};
 
 
 // use solana_sdk::{signature::Keypair, signer::Signer};
@@ -57,6 +57,7 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
         Instructions::CreateAccount{
             // cost
         } => {
+            let program_id_account_info = next_account_info(account_info_iter)?;
             let payer_account_info = next_account_info(account_info_iter)?;
             let vault = next_account_info(account_info_iter)?;
             let mint_account_info = next_account_info(account_info_iter)?;
@@ -112,6 +113,14 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
                 payer_account_info.clone()]
             )?;
 
+            invoke(
+                &set_authority(&token_program_id, &mint_account_info.key, Some(&program_id), AuthorityType::FreezeAccount, &program_id, &[])?,
+                &[
+                    mint_account_info.clone(),
+                    program_id_account_info.clone()
+                ]
+            )?;
+            
 
 
 
