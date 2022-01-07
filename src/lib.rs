@@ -13,7 +13,8 @@ use solana_program::{
 
 use spl_token::instruction::*;
 
-use solana_sdk::{signature::Keypair, signer::Signer};
+
+// use solana_sdk::{signature::Keypair, signer::Signer};
 use std::str::FromStr;
 
 
@@ -46,6 +47,7 @@ impl Instructions{
 
 
 
+
 pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data: &[u8])-> ProgramResult{
     let instruction = Instructions::unpackinst(instruction_data)?;
 
@@ -57,6 +59,9 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
         } => {
             let payer_account_info = next_account_info(account_info_iter)?;
             let vault = next_account_info(account_info_iter)?;
+            let mint_account_info = next_account_info(account_info_iter)?;
+            let rent_account_info = next_account_info(account_info_iter)?;
+            let associated_account_info = next_account_info(account_info_iter)?; 
             let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
             if vault.key != &temp_key {
                 Err(ProgramError::InvalidInstructionData)?
@@ -67,6 +72,7 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
             // let rent_lamports = Rent::get()?.minimum_balance(space);
             let price: u64 = (0.5 * (i32::pow(10,9)) as f64) as u64;
 
+            // let rent = Rent::from_account_info(rent_account_info)?;
             invoke(
                 &system_instruction::transfer(
                     &payer_account_info.key,
@@ -79,17 +85,31 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
                 ]
             )?;
 
-            let mint_pubkey = Keypair::new();
-            let keypair_pubkey = Signer::pubkey(&mint_pubkey);
-
             let mint_authority_pubkey = program_id.clone();
             let freeze_authority_pubkey = program_id.clone();
             let decimals = 0;
             let token_program_id = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
             
             invoke(
-                &initialize_mint(&token_program_id, &keypair_pubkey, &mint_authority_pubkey, Some(&freeze_authority_pubkey), decimals)?,
-                &[]
+                &initialize_mint(&token_program_id, &mint_account_info.key,  &mint_authority_pubkey, Some(&freeze_authority_pubkey), decimals)?,
+                &[mint_account_info.clone(), rent_account_info.clone()]
+            )?;
+            
+
+            invoke(
+                &initialize_account2(&token_program_id, &associated_account_info.key, &mint_account_info.key, &payer_account_info.key)?,
+                &[associated_account_info.clone(),
+                mint_account_info.clone(),
+                payer_account_info.clone(),
+                rent_account_info.clone(),
+                ]
+            )?;
+
+            invoke(
+                &mint_to(&token_program_id, &mint_account_info.key, &associated_account_info.key, &payer_account_info.key, &[/*Now Cyrial go and hunt what this signers are*/], 1)?,
+                &[mint_account_info.clone(),
+                associated_account_info.clone(),
+                payer_account_info.clone()]
             )?;
 
 
@@ -104,8 +124,13 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
 
 #[cfg(test)]
 mod tests {
+    // use std::str::FromStr;
+
+    // use solana_program::pubkey::Pubkey;
+
     #[test]
     fn it_works() {
+        // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
         assert_eq!(5*5, 5*5);
     }
 }
