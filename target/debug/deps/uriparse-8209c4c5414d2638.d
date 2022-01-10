@@ -1,0 +1,14 @@
+/home/cyrial/Desktop/Cyrial_Helloworld/target/debug/deps/uriparse-8209c4c5414d2638.rmeta: /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/lib.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/utility.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/authority.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/fragment.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/path.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/query.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/relative_reference.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/scheme.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/uri.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/uri_reference.rs
+
+/home/cyrial/Desktop/Cyrial_Helloworld/target/debug/deps/uriparse-8209c4c5414d2638.d: /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/lib.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/utility.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/authority.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/fragment.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/path.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/query.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/relative_reference.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/scheme.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/uri.rs /home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/uri_reference.rs
+
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/lib.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/utility.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/authority.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/fragment.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/path.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/query.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/relative_reference.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/scheme.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/uri.rs:
+/home/cyrial/.cargo/registry/src/github.com-1ecc6299db9ec823/uriparse-0.6.3/src/uri_reference.rs:
