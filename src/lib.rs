@@ -63,7 +63,7 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
             let mint_account_info = next_account_info(account_info_iter)?;
             let rent_account_info = next_account_info(account_info_iter)?;
             let associated_account_info = next_account_info(account_info_iter)?; 
-            let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
+            let temp_key = Pubkey::from_str("5qVyTGEhQFd2qDWjFhBquQXrTF11dDtK4zkmGXA8LYU").unwrap();
             if vault.key != &temp_key {
                 Err(ProgramError::InvalidInstructionData)?
             }
