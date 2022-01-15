@@ -29,7 +29,7 @@ pub enum Instructions{
 
 impl Instructions{
     fn unpackinst(input: &[u8]) -> Result<Self, ProgramError>{
-        let (&instr, _) = input.split_first().ok_or(ProgramError::InvalidInstructionData)?;
+        let (&instr, _) = input.split_first().ok_or(ProgramError::InvalidArgument)?;
         Ok(match instr{
             0 => {
                 // let (&cost, _) = rest.split_first().ok_or(ProgramError::InvalidInstructionData)?;
@@ -57,14 +57,14 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
         Instructions::CreateAccount{
             // cost
         } => {
-            let program_id_account_info = next_account_info(account_info_iter)?;
+            // let program_id_account_info = next_account_info(account_info_iter)?;
             let payer_account_info = next_account_info(account_info_iter)?;
             let vault = next_account_info(account_info_iter)?;
             let mint_account_info = next_account_info(account_info_iter)?;
             let rent_account_info = next_account_info(account_info_iter)?;
-            let associated_account_info = next_account_info(account_info_iter)?; 
-            let temp_key = Pubkey::from_str("5qVyTGEhQFd2qDWjFhBquQXrTF11dDtK4zkmGXA8LYU").unwrap();
-            if vault.key != &temp_key {
+            // let associated_account_info = next_account_info(account_info_iter)?; 
+            let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
+            if vault.key != &temp_key && program_id == program_id {
                 Err(ProgramError::InvalidInstructionData)?
             }
 
@@ -89,37 +89,36 @@ pub fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instr
             let mint_authority_pubkey = program_id.clone();
             let freeze_authority_pubkey = program_id.clone();
             let decimals = 0;
-            let token_program_id = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
-            
+            let token_program_info = next_account_info(account_info_iter)?;
             invoke(
-                &initialize_mint(&token_program_id, &mint_account_info.key,  &mint_authority_pubkey, Some(&freeze_authority_pubkey), decimals)?,
-                &[mint_account_info.clone(), rent_account_info.clone()]
+                &initialize_mint(&token_program_info.key, &mint_account_info.key,  &mint_authority_pubkey, Some(&freeze_authority_pubkey), decimals)?,
+                &[mint_account_info.clone(), rent_account_info.clone(), token_program_info.clone()]
             )?;
             
 
-            invoke(
-                &initialize_account2(&token_program_id, &associated_account_info.key, &mint_account_info.key, &payer_account_info.key)?,
-                &[associated_account_info.clone(),
-                mint_account_info.clone(),
-                payer_account_info.clone(),
-                rent_account_info.clone(),
-                ]
-            )?;
+            // invoke(
+            //     &initialize_account2(&token_program_id, &associated_account_info.key, &mint_account_info.key, &payer_account_info.key)?,
+            //     &[associated_account_info.clone(),
+            //     mint_account_info.clone(),
+            //     payer_account_info.clone(),
+            //     rent_account_info.clone(),
+            //     ]
+            // )?;
 
-            invoke(
-                &mint_to(&token_program_id, &mint_account_info.key, &associated_account_info.key, &payer_account_info.key, &[/*Now Cyrial go and hunt what this signers are*/], 1)?,
-                &[mint_account_info.clone(),
-                associated_account_info.clone(),
-                payer_account_info.clone()]
-            )?;
+            // invoke(
+            //     &mint_to(&token_program_id, &mint_account_info.key, &associated_account_info.key, &payer_account_info.key, &[/*Now Cyrial go and hunt what this signers are*/], 1)?,
+            //     &[mint_account_info.clone(),
+            //     associated_account_info.clone(),
+            //     payer_account_info.clone()]
+            // )?;
 
-            invoke(
-                &set_authority(&token_program_id, &mint_account_info.key, Some(&program_id), AuthorityType::FreezeAccount, &program_id, &[])?,
-                &[
-                    mint_account_info.clone(),
-                    program_id_account_info.clone()
-                ]
-            )?;
+            // invoke(
+            //     &set_authority(&token_program_id, &mint_account_info.key, Some(&program_id), AuthorityType::FreezeAccount, &program_id, &[])?,
+            //     &[
+            //         mint_account_info.clone(),
+            //         program_id_account_info.clone()
+            //     ]
+            // )?;
             
 
 
