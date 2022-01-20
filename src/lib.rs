@@ -1,52 +1,47 @@
-// use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint,
     entrypoint::ProgramResult,
     msg,
-    program::{invoke, invoke_signed},
-    // program_error::ProgramError,
+    
+    program::{invoke, invoke_signed}, 
     pubkey::Pubkey,
     system_instruction,
     sysvar::{rent::Rent, Sysvar},
+    program_error::ProgramError,
 };
 use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::*;
 
 // use solana_sdk::{signature::Keypair, signer::Signer};
-// use std::str::FromStr;
+use std::str::FromStr;
 
 entrypoint!(process_instructions);
 
-// pub enum Instructions {
-// CreateAccount {
-// cost: u64
-// },
-// }
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct Sales{
+    pub vault_total: f32,
+    pub counter: u32,
+}
 
-// impl Instructions {
-//     fn unpackinst(input: &[u8]) -> Result<Self, ProgramError> {
-//         let (&instr, _) = input.split_first().ok_or(ProgramError::InvalidArgument)?;
-//         Ok(match instr {
-//             0 => {
-//                 // let (&cost, _) = rest.split_first().ok_or(ProgramError::InvalidInstructionData)?;
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct LockTime{
+    // pub mint_key: Pubkey,
+    // pub associate_token_account_key: Pubkey,
+    pub date_created: u32,
+    pub unlockable_date: u32
+}
 
-//                 Self::CreateAccount{
-//                     // cost
-//                 }
-//             }
 
-//             _ => return Err(ProgramError::InvalidInstructionData.into()),
-//         })
-//     }
-// }
 
 pub fn process_instructions(
-    _program_id: &Pubkey,
+    program_id: &Pubkey,
     accounts: &[AccountInfo],
     _instruction_data: &[u8],
 ) -> ProgramResult {
     // let instruction = Instructions::unpackinst(instruction_data)?;
+    let unlockable_date: u32 = 2022;
 
     let account_info_iter = &mut accounts.iter();
 
@@ -56,29 +51,46 @@ pub fn process_instructions(
     //     } => {
     // let program_id_account_info = next_account_info(account_info_iter)?;
     let payer_account_info = next_account_info(account_info_iter)?;
-    let _vault = next_account_info(account_info_iter)?;
+    let vault = next_account_info(account_info_iter)?;
     let mint_account_info = next_account_info(account_info_iter)?;
     let rent_account_info = next_account_info(account_info_iter)?;
     let associated_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
+    let locktime_pda_info = next_account_info(account_info_iter)?;
+    let sales_pda_info = next_account_info(account_info_iter)?;
     // let associated_token_program_info = next_account_info(account_info_iter)?;
-    // let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
-    // if vault.key != &temp_key && program_id == program_id {
-    //     Err(ProgramError::InvalidInstructionData)?
-    // }
+    let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
+    if vault.key != &temp_key && program_id == program_id {
+        Err(ProgramError::InvalidInstructionData)?
+    }
 
     // let program_id = next_account_info(account_info_iter)?;
     let space: usize = 82;
     let rent_lamports = Rent::get()?.minimum_balance(space);
-    // let price: u64 = (0.5 * (i32::pow(10, 9)) as f64) as u64;
+
+
+    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
+
+    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
+
+    if &sales_pda != sales_pda_info.key{
+        Err(ProgramError::InvalidAccountData)?
+    }
+    // msg!("{:?}",&sales_pda_info.data);
+    let mut sales_account_data = Sales::try_from_slice(&sales_pda_info.data.borrow())?;
+
+    let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
+
+    let price = (unitary  * (i32::pow(10,9) as f32)) as u64;
 
     // let rent = Rent::from_account_info(rent_account_info)?;
-    // invoke(
-    //     &system_instruction::transfer(&payer_account_info.key, &vault.key, price),
-    //     &[payer_account_info.clone(), vault.clone()],
-    // )?;
+    msg!("Hello_0");
+    invoke(
+        &system_instruction::transfer(&payer_account_info.key, &vault.key, price as u64),
+        &[payer_account_info.clone(), vault.clone()],
+    )?;
     // msg!(
     //     "{:?} {:?} {:?} {:?} {:?}",
     //     payer_account_info,
@@ -103,6 +115,11 @@ pub fn process_instructions(
     msg!("Hello2");
 
     let signers_seeds: &[&[u8]; 2] = &[b"cyrial_pda", &[254]];
+    let (mint_authority_pda, _mint_authority_bump) = Pubkey::find_program_address(&[b"cyrial_pda"], program_id);
+    if &mint_authority_pda != mint_account_info.key {
+        Err(ProgramError::InvalidAccountData)?
+    }
+
     invoke(
         &initialize_mint(
             &token_program_info.key,
@@ -168,31 +185,90 @@ pub fn process_instructions(
         &[signers_seeds],
     )?;
     msg!("Hello6");
-    // invoke(
-    //     &initialize_account2(&token_program_id, &associated_account_info.key, &mint_account_info.key, &payer_account_info.key)?,
-    //     &[associated_account_info.clone(),
-    //     mint_account_info.clone(),
-    //     payer_account_info.clone(),
-    //     rent_account_info.clone(),
-    //     ]
-    // )?;
 
-    // invoke(
-    //     &mint_to(&token_program_id, &mint_account_info.key, &associated_account_info.key, &payer_account_info.key, &[/*Now Cyrial go and hunt what this signers are*/], 1)?,
-    //     &[mint_account_info.clone(),
-    //     associated_account_info.clone(),
-    //     payer_account_info.clone()]
-    // )?;
+    invoke_signed(
+        &freeze_account(
+            &token_program_info.key,
+            &associated_account_info.key,
+            &mint_account_info.key,
+            &mint_authority_info.key,
+            &[]
+        )?,
+        &[
+            associated_account_info.clone(),
+            mint_account_info.clone(),
+            mint_authority_info.clone(),
+        ],
+        &[signers_seeds],
 
-    // invoke(
-    //     &set_authority(&token_program_id, &mint_account_info.key, Some(&program_id), AuthorityType::FreezeAccount, &program_id, &[])?,
+    )?;
+    msg!("Hello7");
+
+
+    let locktime_pda_seed: &[&[u8]; 3] = &[
+        b"locktime_pda",
+        &mint_account_info.key.to_bytes(),
+        &associated_account_info.key.to_bytes()
+    ];
+    let (locktime_pda, locktime_pda_bump) = Pubkey::find_program_address(locktime_pda_seed, program_id); 
+    if locktime_pda_info.key != &locktime_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
+    msg!("Hello8");
+    invoke_signed(
+        &system_instruction::create_account(
+            &payer_account_info.key,
+            &locktime_pda_info.key,
+            Rent::get()?.minimum_balance(200),
+            200,
+            &program_id,
+        ),
+        &[payer_account_info.clone(), locktime_pda_info.clone()],
+        &[
+            &[        
+                b"locktime_pda",
+                &mint_account_info.key.to_bytes(),
+                &associated_account_info.key.to_bytes(),
+                &[locktime_pda_bump]
+                ]
+                ]
+    )?;
+    msg!("Hello9");
+    let locktime_account_data = LockTime{
+        date_created: 2021,
+        unlockable_date: unlockable_date,
+    };
+    locktime_account_data.serialize(&mut &mut locktime_pda_info.data.borrow_mut()[..])?;
+    msg!("Hello_a");
+
+    // invoke_signed(
+    //     &system_instruction::create_account(
+    //         &payer_account_info.key,
+    //         &sales_pda_info.key,
+    //         Rent::get()?.minimum_balance(200),
+    //         200,
+    //         &program_id,
+    //     ),
+    //     &[payer_account_info.clone(), sales_pda_info.clone()],
     //     &[
-    //         mint_account_info.clone(),
-    //         program_id_account_info.clone()
-    //     ]
+    //         &[        
+    //             b"sales_pda",
+    //             &program_id.to_bytes() as &[u8],
+    //             &[_sales_pda_bump]
+    //             ]
+    //             ]
     // )?;
-    // }
-    // }
+    msg!("Hello_b");
+    sales_account_data.vault_total += unitary;
+    sales_account_data.counter += 1;
+    
+    // let sales_account_data = Sales{
+    //     vault_total : 1.0,
+    //     counter :  1
+    // };
+
+    sales_account_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
+
 
     Ok(())
 }
