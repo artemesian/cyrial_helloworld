@@ -13,10 +13,10 @@ use solana_program::{
 };
 use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::*;
+use metaplex_token_metadata::{instruction, id, state::{Creator}};
 
 // use solana_sdk::{signature::Keypair, signer::Signer};
 use std::str::FromStr;
-
 entrypoint!(process_instructions);
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -60,6 +60,7 @@ pub fn process_instructions(
     let mint_authority_info = next_account_info(account_info_iter)?;
     let locktime_pda_info = next_account_info(account_info_iter)?;
     let sales_pda_info = next_account_info(account_info_iter)?;
+    let metadata_pda_info = next_account_info(account_info_iter)?;
     // let associated_token_program_info = next_account_info(account_info_iter)?;
     let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
     if vault.key != &temp_key && program_id == program_id {
@@ -79,8 +80,8 @@ pub fn process_instructions(
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&sales_pda_info.data);
-    let mut sales_account_data = Sales::try_from_slice(&sales_pda_info.data.borrow())?;
-
+    // let mut sales_account_data = Sales::try_from_slice(&sales_pda_info.data.borrow())?;
+    let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
     let price = (unitary  * (i32::pow(10,9) as f32)) as u64;
@@ -114,9 +115,9 @@ pub fn process_instructions(
     )?;
     msg!("Hello2");
 
-    let signers_seeds: &[&[u8]; 2] = &[b"cyrial_pda", &[254]];
-    let (mint_authority_pda, _mint_authority_bump) = Pubkey::find_program_address(&[b"cyrial_pda"], program_id);
-    if &mint_authority_pda != mint_account_info.key {
+    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"cyrial_pda"], program_id);
+    let signers_seeds: &[&[u8]; 2] = &[b"cyrial_pda", &[mint_authority_bump]];
+    if &mint_authority_pda != mint_authority_info.key {
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -170,6 +171,28 @@ pub fn process_instructions(
         ],
         &[signers_seeds],
     )?;
+
+    msg!("Hello_C");
+
+    let mut creators = Vec::new();
+    creators.push(Creator{address: *mint_authority_info.key, verified: true, share: 100});
+    // creators.push(Creator{address: *vault.key, verified:true, share:100});
+    
+    invoke_signed(
+        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Angelo".to_string(), "Gtree".to_string(), "https://arweave.net/UXmk5Y5uoc3HGWW8C4G4c63ajynyR-cP_Ve0G4Rt9Jg".to_string(), Some(creators), 500, true, true),
+        &[
+            metadata_pda_info.clone(),
+            mint_account_info.clone(),
+            mint_authority_info.clone(),
+            payer_account_info.clone(),
+            mint_authority_info.clone(),
+            system_account_info.clone(),
+            rent_account_info.clone(),
+        ],
+        &[signers_seeds]
+    )?;
+
+
     msg!("Hello5");
 
     invoke_signed(
@@ -268,7 +291,6 @@ pub fn process_instructions(
     // };
 
     sales_account_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
-
 
     Ok(())
 }
