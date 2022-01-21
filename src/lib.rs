@@ -35,11 +35,11 @@ pub struct LockTime{// Find out how to use the clock on solana
     pub unlockable_date: u32
 }
 
-pub fn lock_time(counter:u32)->u32{
-    let mut e_power:f32  = (counter - 80000) as f32 / 50000.0;
+pub fn lock_time(counter:f32)->u32{
+    let mut e_power:f32  = (80000.0 - counter) / 50000.0;
     e_power = e_power.powf(5.0);
-    e_power = 1.0 + std::f32::consts::E.powf(-e_power);
-    (365.0 * 8640.0 * e_power) as u32
+    e_power = 1.0 + std::f32::consts::E.powf(e_power);
+    (365.0 * 8640.0 / e_power) as u32
 }
 
 
@@ -85,19 +85,11 @@ fn select_uri<'life>(ind: u8) -> &'life str {
 }
 
 
-pub fn process_instructions(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    _instruction_data: &[u8],
-) -> ProgramResult {
+pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     
     let account_info_iter = &mut accounts.iter();
 
-    // match instruction {
-    //     Instructions::CreateAccount{
-    //         // cost
-    //     } => {
-    // let program_id_account_info = next_account_info(account_info_iter)?;
+
     let payer_account_info = next_account_info(account_info_iter)?;
     let vault = next_account_info(account_info_iter)?;
     let mint_account_info = next_account_info(account_info_iter)?;
@@ -112,7 +104,7 @@ pub fn process_instructions(
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     // let associated_token_program_info = next_account_info(account_info_iter)?;
     let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
-    if vault.key != &temp_key && program_id == program_id {
+    if vault.key != &temp_key {
         Err(ProgramError::InvalidInstructionData)?
     }
 
@@ -142,7 +134,10 @@ pub fn process_instructions(
 
     let price = (unitary  * (i32::pow(10,9) as f32)) as u64;
 
-    let unlockable_date: u32 = current_timestamp + lock_time(sales_account_data.counter);
+    msg!("Current timestamp: {:?}", current_timestamp);
+    let locked_time = lock_time(sales_account_data.counter as f32);
+    msg!("Locked time: {:?}", locked_time);
+    let unlockable_date: u32 = current_timestamp + locked_time;
 
     // let rent = Rent::from_account_info(rent_account_info)?;
     msg!("Hello_0");
@@ -364,9 +359,90 @@ pub fn process_instructions(
 
     sales_account_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
 
-    msg!("Locked for {:?} Minutes", unlockable_date - current_timestamp);
-
+    msg!("Locked for {:?} seconds", unlockable_date - current_timestamp);
     Ok(())
+}
+
+pub enum InstructionEnum{
+    MintNft,
+    UnlockMint,
+}
+
+impl InstructionEnum{
+    fn decode(data: &[u8]) -> Result<Self, ProgramError>{
+        match data[0]{
+            0 => {Ok(Self::MintNft)}
+            1 => {Ok(Self::UnlockMint)}
+            _ => {Err(ProgramError::InvalidInstructionData)}
+        }
+    }
+}
+
+fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
+    let account_info_iter = &mut accounts.iter();
+
+
+    let mint_account_info = next_account_info(account_info_iter)?;
+    let associated_account_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+    let mint_authority_info = next_account_info(account_info_iter)?;
+    let locktime_pda_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
+
+    msg!("Hello_a");
+    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"cyrial_pda"], program_id);
+    let signers_seeds: &[&[u8]; 2] = &[b"cyrial_pda", &[mint_authority_bump]];
+    if &mint_authority_pda != mint_authority_info.key {
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let locktime_account_data: LockTime = try_from_slice_unchecked(&locktime_pda_info.data.borrow())?;
+
+    let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    // Getting timestamp
+    let current_timestamp = clock.unix_timestamp as u32;
+    msg!("Hello_b");
+    if current_timestamp > locktime_account_data.unlockable_date{
+        invoke_signed(
+            &thaw_account(
+                &token_program_info.key,
+                &associated_account_info.key,
+                &mint_account_info.key,
+                &mint_authority_info.key,
+                &[]
+            )?,
+            &[
+                associated_account_info.clone(),
+                mint_account_info.clone(),
+                mint_authority_info.clone(),
+            ],
+            &[signers_seeds],
+
+        )?;
+    }
+    else {
+        msg!("Hello_c");
+        return Err(ProgramError::InvalidAccountData);
+    }
+    Ok(())
+}
+
+
+pub fn process_instructions(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
+) -> ProgramResult {
+        let instruction = InstructionEnum::decode(instruction_data)?;
+        match instruction {
+
+            InstructionEnum::MintNft =>{
+                mint_nft(program_id, accounts)
+            }
+            InstructionEnum::UnlockMint => {
+                unlock_account(program_id, accounts)
+            }   
+        }
 }
 
 // #[cfg(test)]
