@@ -4,7 +4,7 @@ use solana_program::{
     entrypoint,
     entrypoint::ProgramResult,
     msg,
-    
+    borsh::{try_from_slice_unchecked},
     program::{invoke, invoke_signed}, 
     pubkey::Pubkey,
     system_instruction,
@@ -15,7 +15,7 @@ use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::*;
 use metaplex_token_metadata::{instruction, id, state::{Creator}};
 
-// use solana_sdk::{signature::Keypair, signer::Signer};
+// use solana_sdk::{borsh::try_from_slice_unchecked};
 use std::str::FromStr;
 entrypoint!(process_instructions);
 
@@ -80,8 +80,8 @@ pub fn process_instructions(
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&sales_pda_info.data);
-    // let mut sales_account_data = Sales::try_from_slice(&sales_pda_info.data.borrow())?;
-    let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
+    let mut sales_account_data: Sales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
     let price = (unitary  * (i32::pow(10,9) as f32)) as u64;
