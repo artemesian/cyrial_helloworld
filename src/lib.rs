@@ -26,7 +26,7 @@ pub struct Sales{
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
-pub struct LockTime{
+pub struct LockTime{// Find out how to use the clock on solana
     // pub mint_key: Pubkey,
     // pub associate_token_account_key: Pubkey,
     pub date_created: u32,
@@ -175,11 +175,11 @@ pub fn process_instructions(
     msg!("Hello_C");
 
     let mut creators = Vec::new();
-    creators.push(Creator{address: *mint_authority_info.key, verified: true, share: 100});
-    // creators.push(Creator{address: *vault.key, verified:true, share:100});
+    creators.push(Creator{address: *mint_authority_info.key, verified: true, share: 0});
+    creators.push(Creator{address: *vault.key, verified:false, share:100});
     
     invoke_signed(
-        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Angelo".to_string(), "Gtree".to_string(), "https://arweave.net/UXmk5Y5uoc3HGWW8C4G4c63ajynyR-cP_Ve0G4Rt9Jg".to_string(), Some(creators), 500, true, true),
+        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Angelo".to_string(), "Gtree".to_string(), "https://arweave.net/PJQ_ULPglDrQQ_gyxLknq074Z8pl4w0iJCU6Atqhehk".to_string(), Some(creators), 500, true, true),
         &[
             metadata_pda_info.clone(),
             mint_account_info.clone(),
@@ -281,6 +281,7 @@ pub fn process_instructions(
     //             ]
     //             ]
     // )?;
+
     msg!("Hello_b");
     sales_account_data.vault_total += unitary;
     sales_account_data.counter += 1;
