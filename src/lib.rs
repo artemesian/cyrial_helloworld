@@ -28,11 +28,11 @@ pub struct Sales{
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
-pub struct LockTime{// Find out how to use the clock on solana
-    // pub mint_key: Pubkey,
-    // pub associate_token_account_key: Pubkey,
+pub struct AvatarData{// Find out how to use the clock on solana
     pub date_created: u32,
-    pub unlockable_date: u32
+    pub unlockable_date: u32,
+    pub level: u8,
+    pub xp: u32,
 }
 
 pub fn lock_time(counter:f32)->u32{
@@ -148,7 +148,7 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let token_program_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
-    let locktime_pda_info = next_account_info(account_info_iter)?;
+    let avatar_pda_info = next_account_info(account_info_iter)?;
     let sales_pda_info = next_account_info(account_info_iter)?;
     let metadata_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
@@ -312,11 +312,11 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     )?;
 
     invoke_signed(
-        &instruction::update_primary_sale_happened_via_token(id(), *metadata_pda_info.key, *mint_authority_info.key, *mint_account_info.key),
+        &instruction::update_primary_sale_happened_via_token(id(), *metadata_pda_info.key, *payer_account_info.key, *associated_account_info.key),
         &[
             metadata_pda_info.clone(),
-            mint_authority_info.clone(),
-            mint_account_info.clone()
+            payer_account_info.clone(),
+            associated_account_info.clone()
             ],
         &[signers_seeds]
     )?;
@@ -357,27 +357,27 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
 
 
     let locktime_pda_seed: &[&[u8]; 3] = &[
-        b"locktime_pda",
+        b"avatar_data_pda",
         &mint_account_info.key.to_bytes(),
         &associated_account_info.key.to_bytes()
     ];
     let (locktime_pda, locktime_pda_bump) = Pubkey::find_program_address(locktime_pda_seed, program_id); 
-    if locktime_pda_info.key != &locktime_pda{
+    if avatar_pda_info.key != &locktime_pda{
         Err(ProgramError::InvalidAccountData)?
     }
     msg!("Hello8");
     invoke_signed(
         &system_instruction::create_account(
             &payer_account_info.key,
-            &locktime_pda_info.key,
+            &avatar_pda_info.key,
             Rent::get()?.minimum_balance(200),
             200,
             &program_id,
         ),
-        &[payer_account_info.clone(), locktime_pda_info.clone()],
+        &[payer_account_info.clone(), avatar_pda_info.clone()],
         &[
             &[        
-                b"locktime_pda",
+                b"avatar_data_pda",
                 &mint_account_info.key.to_bytes(),
                 &associated_account_info.key.to_bytes(),
                 &[locktime_pda_bump]
@@ -385,11 +385,13 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
                 ]
     )?;
     msg!("Hello9");
-    let locktime_account_data = LockTime{
+    let avatar_pda_account_data = AvatarData{
+        level: 0,
+        xp: 0,
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
     };
-    locktime_account_data.serialize(&mut &mut locktime_pda_info.data.borrow_mut()[..])?;
+    avatar_pda_account_data.serialize(&mut &mut avatar_pda_info.data.borrow_mut()[..])?;
     msg!("Hello_a");
 
     // invoke_signed(
@@ -448,7 +450,7 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let associated_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
-    let locktime_pda_info = next_account_info(account_info_iter)?;
+    let avatar_data_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
 
     msg!("Hello_a");
@@ -458,13 +460,13 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         Err(ProgramError::InvalidAccountData)?
     }
 
-    let locktime_account_data: LockTime = try_from_slice_unchecked(&locktime_pda_info.data.borrow())?;
+    let avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
 
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     // Getting timestamp
     let current_timestamp = clock.unix_timestamp as u32;
     msg!("Hello_b");
-    if current_timestamp > locktime_account_data.unlockable_date{
+    if current_timestamp > avatar_pda_account_data.unlockable_date{
         invoke_signed(
             &thaw_account(
                 &token_program_info.key,
@@ -483,7 +485,7 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         )?;
     }
     else {
-        msg!("This Account's Unlock time hasn't yet reached. It will be unlocked on {:?}. Chech to see you sent the correct account", locktime_account_data.unlockable_date);
+        msg!("This Account's Unlock time hasn't yet reached. It will be unlocked on {:?}. Chech to see you sent the correct account", avatar_pda_account_data.unlockable_date);
         return Err(ProgramError::InvalidAccountData );
     }
     Ok(())
