@@ -386,10 +386,10 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     )?;
     msg!("Hello9");
     let avatar_pda_account_data = AvatarData{
-        level: 0,
-        xp: 0,
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
+        level: 0,
+        xp: 0,
     };
     avatar_pda_account_data.serialize(&mut &mut avatar_pda_info.data.borrow_mut()[..])?;
     msg!("Hello_a");
