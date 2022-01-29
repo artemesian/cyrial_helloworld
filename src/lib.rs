@@ -16,6 +16,7 @@ use solana_program::{
 use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::*;
 use metaplex_token_metadata::{instruction, id, state::{Creator}};
+use math::round;
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
 use std::str::FromStr;
@@ -148,14 +149,14 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let token_program_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
-    let avatar_pda_info = next_account_info(account_info_iter)?;
+    let avatar_data_pda_info = next_account_info(account_info_iter)?;
     let sales_pda_info = next_account_info(account_info_iter)?;
     let metadata_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     // let associated_token_program_info = next_account_info(account_info_iter)?;
     let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
     if vault.key != &temp_key {
-        Err(ProgramError::InvalidInstructionData)?
+        Err(ProgramError::InvalidAccountData)?
     }
 
 
@@ -356,31 +357,31 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     msg!("Hello7");
 
 
-    let locktime_pda_seed: &[&[u8]; 3] = &[
+    let avatar_data_pda_seed: &[&[u8]; 3] = &[
         b"avatar_data_pda",
         &mint_account_info.key.to_bytes(),
         &associated_account_info.key.to_bytes()
     ];
-    let (locktime_pda, locktime_pda_bump) = Pubkey::find_program_address(locktime_pda_seed, program_id); 
-    if avatar_pda_info.key != &locktime_pda{
+    let (avatar_data_pda, avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id); 
+    if avatar_data_pda_info.key != &avatar_data_pda{
         Err(ProgramError::InvalidAccountData)?
     }
     msg!("Hello8");
     invoke_signed(
         &system_instruction::create_account(
             &payer_account_info.key,
-            &avatar_pda_info.key,
+            &avatar_data_pda_info.key,
             Rent::get()?.minimum_balance(200),
             200,
             &program_id,
         ),
-        &[payer_account_info.clone(), avatar_pda_info.clone()],
+        &[payer_account_info.clone(), avatar_data_pda_info.clone()],
         &[
             &[        
                 b"avatar_data_pda",
                 &mint_account_info.key.to_bytes(),
                 &associated_account_info.key.to_bytes(),
-                &[locktime_pda_bump]
+                &[avatar_data_pda_bump]
                 ]
                 ]
     )?;
@@ -391,7 +392,7 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         level: 0,
         xp: 0,
     };
-    avatar_pda_account_data.serialize(&mut &mut avatar_pda_info.data.borrow_mut()[..])?;
+    avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     msg!("Hello_a");
 
     // invoke_signed(
@@ -430,6 +431,7 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
 pub enum InstructionEnum{
     MintNft,
     UnlockMint,
+    ClaimXp{xp_increase:u32},
 }
 
 impl InstructionEnum{
@@ -437,6 +439,13 @@ impl InstructionEnum{
         match data[0]{
             0 => {Ok(Self::MintNft)}
             1 => {Ok(Self::UnlockMint)}
+            2 => {
+
+                let mut total_increase: u32 = 0;
+                for unit_increase in data[1..].iter() {
+                    total_increase += *unit_increase as u32;
+                }
+                Ok(Self::ClaimXp{xp_increase:total_increase})}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -460,7 +469,16 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         Err(ProgramError::InvalidAccountData)?
     }
 
+    let avatar_data_pda_seed: &[&[u8]; 3] = &[
+        b"avatar_data_pda",
+        &mint_account_info.key.to_bytes(),
+        &associated_account_info.key.to_bytes()
+    ];
     let avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+    let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
+    if avatar_data_pda_info.key != &avatar_data_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
 
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     // Getting timestamp
@@ -491,6 +509,35 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     Ok(())
 }
 
+fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], to_increase_by: u32) -> ProgramResult{
+    let account_info_iter = &mut accounts.iter();
+    
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let mint_account_info = next_account_info(account_info_iter)?;
+    let associated_account_info = next_account_info(account_info_iter)?;
+    let avatar_data_pda_info = next_account_info(account_info_iter)?;
+
+    if !payer_account_info.is_signer || payer_account_info.key !=  &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+
+    let avatar_data_pda_seed: &[&[u8]; 3] = &[
+        b"avatar_data_pda",
+        &mint_account_info.key.to_bytes(),
+        &associated_account_info.key.to_bytes()
+    ];
+    let mut avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+    let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
+    if avatar_data_pda_info.key != &avatar_data_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    avatar_pda_account_data.xp += to_increase_by;
+    avatar_pda_account_data.level = round::floor(0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0), 0) as u8;
+    avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
+    Ok(())
+}
 
 pub fn process_instructions(
     program_id: &Pubkey,
@@ -506,6 +553,10 @@ pub fn process_instructions(
             InstructionEnum::UnlockMint => {
                 unlock_account(program_id, accounts)
             }   
+
+            InstructionEnum::ClaimXp{xp_increase} =>{
+                claim_xp(program_id, accounts, xp_increase)
+            }
         }
 }
 
