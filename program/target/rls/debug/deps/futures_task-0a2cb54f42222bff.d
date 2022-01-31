@@ -1,0 +1,11 @@
+/home/artemesian/PROJECTS/cyrial_helloworld/program/target/rls/debug/deps/futures_task-0a2cb54f42222bff.rmeta: /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/lib.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/spawn.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/arc_wake.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/waker.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/waker_ref.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/future_obj.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/noop_waker.rs
+
+/home/artemesian/PROJECTS/cyrial_helloworld/program/target/rls/debug/deps/futures_task-0a2cb54f42222bff.d: /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/lib.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/spawn.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/arc_wake.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/waker.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/waker_ref.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/future_obj.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/noop_waker.rs
+
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/lib.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/spawn.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/arc_wake.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/waker.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/waker_ref.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/future_obj.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-task-0.3.19/src/noop_waker.rs:

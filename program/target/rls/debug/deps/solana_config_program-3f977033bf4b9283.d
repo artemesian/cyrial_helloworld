@@ -1,0 +1,8 @@
+/home/artemesian/PROJECTS/cyrial_helloworld/program/target/rls/debug/deps/solana_config_program-3f977033bf4b9283.rmeta: /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/lib.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/config_instruction.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/config_processor.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/date_instruction.rs
+
+/home/artemesian/PROJECTS/cyrial_helloworld/program/target/rls/debug/deps/solana_config_program-3f977033bf4b9283.d: /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/lib.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/config_instruction.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/config_processor.rs /home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/date_instruction.rs
+
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/lib.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/config_instruction.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/config_processor.rs:
+/home/artemesian/.cargo/registry/src/github.com-1ecc6299db9ec823/solana-config-program-1.9.4/src/date_instruction.rs:
