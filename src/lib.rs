@@ -54,7 +54,7 @@ fn select_uri<'life>(ind: u32) -> &'life str {
         "https://arweave.net/tKPxIsiTOBdczp6InMu_IC_kFSlCYHu4O6ZOKAPBiUA",
         "https://arweave.net/gV3tRlZFOgcOLcQeYOcnqlSt7iJvoaGNXobQtVL-wgw",
         "https://arweave.net/x5odbWE6nrqsdpDsxhjLCwKMudeXbb0N39DY66iKotQ"];
-        return avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()];
+        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
     }
     //Proffesional
     else if new_ind >= 432 && new_ind <442 {
@@ -65,7 +65,7 @@ fn select_uri<'life>(ind: u32) -> &'life str {
         "https://arweave.net/LIKg4VDR-vTMFokQAyKtMd5XptfKdWOorxpS3L3K0Y8",
         "https://arweave.net/bA_pt6mcI3z93I2cgF16PR8TQe6drSJjZd-RmVt_OVA"];
 
-        return avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()];
+        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
     }
     //Rookie
     else if new_ind >= 600 && new_ind < 634{
@@ -76,7 +76,7 @@ fn select_uri<'life>(ind: u32) -> &'life str {
         "https://arweave.net/QiwFzMBy3wK06C6leOqRMIgKxrn-cZB8bbpxPJbopgY",
         "https://arweave.net/fVH3Mamk7xQCEOkKjEwwyW7K_W7XG88rDFBan42u7uk"];
 
-        return avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()];
+        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
     }
     //Amature
     else if new_ind >= 545 && new_ind < 600{
@@ -87,7 +87,7 @@ fn select_uri<'life>(ind: u32) -> &'life str {
         "https://arweave.net/ht4duIHkYFqEzOdkUyrUHyTBQJPyBfK8dGmUtWCCmv4",
         "https://arweave.net/Xa42ocgmuaGjCbKh_z4uqoflJ203w8mLG1u7cshqoUQ"];
 
-        return avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()];
+        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
     }
     //Local
     else if new_ind < 100{
@@ -99,7 +99,7 @@ fn select_uri<'life>(ind: u32) -> &'life str {
         "https://arweave.net/6eo3M2V9tP-xkPQ9S0RRp4cnRcddGXYCs_yKAEXs3Mc",
         "https://arweave.net/IEsRi8tuErw0NpxQ6_wZXo7knPjuS9aRe8HwwPsPzRc",
         "https://arweave.net/JsQ5_kCISftFJr4A0GhY0MavKY6-nYjn2WNAo_-jq_M"];
-        return avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()];
+        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
     }
     //Casual
     else if new_ind > 800{
@@ -115,7 +115,7 @@ fn select_uri<'life>(ind: u32) -> &'life str {
         "https://arweave.net/n4YbLErqT8J2mJZTbwZbYXCmV_5Rh-AnlH34DefJx4c",
         "https://arweave.net/a2MgzkSKaN5bOi1CqXt-m5N-y89Z2Sv6ME7oTdB7gZg"];
 
-        return avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()];
+        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
     }
     //NewB
     else {
@@ -129,7 +129,7 @@ fn select_uri<'life>(ind: u32) -> &'life str {
         "https://arweave.net/T3fRbZBso7qk0sKRtGg7VUeLCy3xUyJMTkE8hZ1OelM",
         "https://arweave.net/44opKnjpKtsNB3uXQVWzP4S8XxyxoQpINHorzg3CoO0",
         "https://arweave.net/QZLXciA8DoyFZP3Z_pp4Si3k5Pwg-xHpPiYckbiFh40"];
-        return avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()];
+        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
     }
 
 }
@@ -296,6 +296,11 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         index_uri += (*i as u32) * (*i as u32);
     }
 
+    let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
+
+    if *metadata_pda_info.key != metadata_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
     
     invoke_signed(
         &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Gamestree Avatar".to_string(), "Gtree".to_string(), select_uri(index_uri).to_string(), Some(creators), 500, true, true),
@@ -431,6 +436,7 @@ pub enum InstructionEnum{
     MintNft,
     UnlockMint,
     ClaimXp{xp_increase:u32},
+    CreateSalesAccount,
 }
 
 impl InstructionEnum{
@@ -448,6 +454,56 @@ impl InstructionEnum{
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
+}
+
+fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> ProgramResult{
+
+    let account_info_iter = &mut accounts.iter();
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let sales_pda_info = next_account_info(account_info_iter)?;
+    
+    if !payer_account_info.is_signer || payer_account_info.key != &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
+
+    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
+
+    if &sales_pda != sales_pda_info.key{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+
+
+    invoke_signed(
+        &system_instruction::create_account(
+            &payer_account_info.key,
+            &sales_pda_info.key,
+            Rent::get()?.minimum_balance(200),
+            200,
+            &program_id,
+        ),
+        &[payer_account_info.clone(), sales_pda_info.clone()],
+        &[
+            &[        
+                b"sales_pda",
+                &program_id.to_bytes() as &[u8],
+                &[_sales_pda_bump]
+                ]
+                ]
+    )?;
+
+
+    let sales_account_data = Sales{
+        vault_total : 1.0,
+        counter :  1
+    };
+
+    sales_account_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
+
+    Ok(())
 }
 
 fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
@@ -517,7 +573,7 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], to_increase_by: u32) 
     let avatar_data_pda_info = next_account_info(account_info_iter)?;
 
     if !payer_account_info.is_signer || payer_account_info.key !=  &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
-        return Err(ProgramError::InvalidAccountData);
+        Err(ProgramError::InvalidAccountData)?
     }
 
 
@@ -556,6 +612,7 @@ pub fn process_instructions(
             InstructionEnum::ClaimXp{xp_increase} =>{
                 claim_xp(program_id, accounts, xp_increase)
             }
+            InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
         }
 }
 
