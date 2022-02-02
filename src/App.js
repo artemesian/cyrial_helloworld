@@ -327,7 +327,9 @@ const App = () => {
             padding={"20px 0"}
           >
             <Container>
-              {isFetching ? (
+              {!wallet.connected ? (
+                "Please connect wallet"
+              ) : isFetching ? (
                 "Fetching...."
               ) : tokens.length === 0 ? (
                 "No avatar yet minted"
