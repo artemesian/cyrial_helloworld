@@ -126,7 +126,7 @@ const App = () => {
     let mintKeypair = Keypair.generate();
     let mintAccount = {
       pubkey: mintKeypair.publicKey,
-      isSigner: false,
+      isSigner: true,
       isWritable: true,
     };
     let assoctokenAccount = {
@@ -137,7 +137,7 @@ const App = () => {
         wallet.publicKey
       ),
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     };
     let splprogramAccount = {
       pubkey: TOKEN_PROGRAM_ID,
@@ -182,16 +182,14 @@ const App = () => {
       programID
     );
     let [salesPDA, sales_nonce] = await PublicKey.findProgramAddress(
-      [Buffer.from("sales_pda", programID.toBuffer())],
+      [Buffer.from("sales_pda"), programID.toBuffer()],
       programID
     );
     let [metadataPDA, metadata_nonce] = await PublicKey.findProgramAddress(
       [
-        Buffer.from(
-          "metadata",
-          metaplexMetadataID.toBuffer(),
-          mintAccount.pubkey.toBuffer()
-        ),
+        Buffer.from("metadata"),
+        metaplexMetadataID.toBuffer(),
+        mintAccount.pubkey.toBuffer(),
       ],
       metaplexMetadataID
     );
@@ -229,6 +227,7 @@ const App = () => {
         salesAccount,
         tokenmetadataAccount,
         clockAccount,
+
         splprogramAccount,
         assocprogramAccount,
         splprogramAccount,
@@ -253,7 +252,7 @@ const App = () => {
     tx.feePayer = await wallet.publicKey;
     let blockhashObj = await connection.getRecentBlockhash();
     tx.recentBlockhash = await blockhashObj.blockhash;
-    tx.sign(mintKeypair);
+    tx.sign(...[wallet, mintKeypair]);
     const signedTransaction = await wallet.signTransaction(tx);
     var test = signedTransaction.serialize();
     const transactionId = await connection.sendRawTransaction(test);
