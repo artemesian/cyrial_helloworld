@@ -13,7 +13,7 @@ use solana_program::{
     system_instruction,
     sysvar::{rent::Rent, Sysvar},
 };
-use spl_associated_token_account::instruction::create_associated_token_account;
+use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::*;
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
@@ -573,8 +573,8 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], to_increase_by: u32) 
     }
 
     avatar_pda_account_data.xp += to_increase_by;
-    avatar_pda_account_data.level =
-        (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0 / 3.0)).floor() as u8;
+    // avatar_pda_account_data.level =
+    //     (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0 / 3.0)).floor() as u8;
     avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     Ok(())
 }

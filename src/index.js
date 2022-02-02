@@ -7,7 +7,7 @@ import {
   ConnectionProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { LOCAL_CONNECTION_URL } from "./constants";
+import { DEVNET_CONNECTION_URL } from "./constants";
 import "./index.css";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
@@ -17,7 +17,7 @@ const wallets = [new PhantomWalletAdapter()];
 
 ReactDOM.render(
   <React.StrictMode>
-    <ConnectionProvider endpoint={LOCAL_CONNECTION_URL}>
+    <ConnectionProvider endpoint={DEVNET_CONNECTION_URL}>
       <WalletProvider wallets={wallets} autoConnect={false}>
         <WalletModalProvider>
           <App />
