@@ -31,6 +31,8 @@ pub struct Sales{
 pub struct AvatarData{// Find out how to use the clock on solana
     pub date_created: u32,
     pub unlockable_date: u32,
+    pub numeration: u32,
+    pub rarity: u8,
     pub level: u8,
     pub xp: u32,
 }
@@ -44,98 +46,112 @@ pub fn lock_time(counter:f32)->u32{
 
 
 
-fn select_uri<'life>(ind: u32) -> &'life str {
+fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 
-    let new_ind = ind % 1000;
 
+    let new_ind = match rarity{
+         Some(rar) => {
+            ind = ind - (ind % 1000);
+             match rar{
+                 7 =>{689}
+                 6 =>{435}
+                 5 =>{610}
+                 4 =>{555}
+                 3 =>{50}
+                 2 =>{850}
+                 _ => {700}
+             }
+         }
+         None => {ind % 1000}
+    };
     //Champion
     if new_ind == 689{
-        let avatars = ["https://arweave.net/zREGv-Dt7Pw_CqvumRBvrGGTNg8-9EE6kQa-zcIpouM",
-        "https://arweave.net/tKPxIsiTOBdczp6InMu_IC_kFSlCYHu4O6ZOKAPBiUA",
-        "https://arweave.net/gV3tRlZFOgcOLcQeYOcnqlSt7iJvoaGNXobQtVL-wgw",
-        "https://arweave.net/x5odbWE6nrqsdpDsxhjLCwKMudeXbb0N39DY66iKotQ"];
-        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
+        let avatars = ["https://arweave.net/9PpWTTi7HtqsaqVA3Xj3HSSOgZmSd6Xp8LtIIJGpXZQ",
+        "https://arweave.net/HrwBGdAvm7JNcwtELnFcKpASzOxpM6DiabXNhwzhIvo",
+        "https://arweave.net/jMS9hTVfVDzZTLmjK4b9wMlU5IvaKkaIq4rkWd8v6tI",
+        "https://arweave.net/hW1v0aRSgyiLSf3T-g-KrVy149vnLxRogzW1OKhJ9M4"];
+        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 7)
     }
     //Proffesional
     else if new_ind >= 432 && new_ind <442 {
-        let avatars =  ["https://arweave.net/MmZN9UVtvP4wtDsb9AvtzJvzK1SrcRztLpbh9eJ6kKQ",
-        "https://arweave.net/91uxMH8i8BN4n9XAL8mPpDZzAjiB7GJsDwSDfseYAHw",
-        "https://arweave.net/11c3DZfiuE42ehWnZbRb7rmXSvRg6rvf7rVEFI9SxAo",
-        "https://arweave.net/lflC2tkF7SCZ8OJ28j4UuLvpYXeQdMLlTjSiBoLgnYg",
-        "https://arweave.net/LIKg4VDR-vTMFokQAyKtMd5XptfKdWOorxpS3L3K0Y8",
-        "https://arweave.net/bA_pt6mcI3z93I2cgF16PR8TQe6drSJjZd-RmVt_OVA"];
+        let avatars = ["https://arweave.net/d7SkjEvOnrnjd70VJolcYH9wPHvKlCnHbK-cELj80ns",
+        "https://arweave.net/P0KnKMBd1HDEiuusImQyCZvXxMPIeTwnxAhpUKak-dU",
+        "https://arweave.net/L4RT2S0lMfpCb-VSgcxgQf2_d_yQtLcd7LPG69ktZ7Y",
+        "https://arweave.net/XbcADvU4mVYA16uQ9ntgT5mqeBReReEGB0gBlfQcGt0",
+        "https://arweave.net/o_RA3BIqkCfVJBDk2BoUinTVKzn7kp1sd66HhmNDxus",
+        "https://arweave.net/dfqYLcfA-IfAm5kwxe9r4FY7t4GjI3tQ5qp71PF5NUI"];
 
-        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
+        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 6)
     }
     //Rookie
     else if new_ind >= 600 && new_ind < 634{
-        let avatars =  ["https://arweave.net/L7_O0J0tw4Wi95bqFV9PY72RxCQ-Chr0glA0UJywALE",
-        "https://arweave.net/rA-YamVx4a5gTkx55s9b1rEG4s6WkwXfweISGhW3DMY",
-        "https://arweave.net/6A68qFPCJR7UL6_095zHAKufdrq3hMq4ctD1Rz68QL8",
-        "https://arweave.net/kvjMKHfqritvkPKUF1GWpcReO6XTCeQ45a0-WcGQlgM",
-        "https://arweave.net/QiwFzMBy3wK06C6leOqRMIgKxrn-cZB8bbpxPJbopgY",
-        "https://arweave.net/fVH3Mamk7xQCEOkKjEwwyW7K_W7XG88rDFBan42u7uk"];
+        let avatars =  ["https://arweave.net/--IWT_ar1dmtaD59TmuEtxpzo78dA1CtB0Rw4NQImgY",
+        "https://arweave.net/OgLLqseURKEhpnG2pemY8-GABb02Sv3-bd-Z-zSCU6E",
+        "https://arweave.net/1Cg372-PuRnC3NpQPkU_S2mwQ1cA5c0INw6iGjh6qm8",
+        "https://arweave.net/QuLsWewEBafc1vgj81CCqXM9RHWThNLpdYlF69f7n4s",
+        "https://arweave.net/JXB0E8Y2qibfWnBH2a46Nr6tWDjoUXQw94lp8nIF8Go",
+        "https://arweave.net/BG_y-_b9Wf9cWqPbiqq8a29HTyzF7ZkzQoU2WoZt2uE"];
 
-        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
+        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 5)
     }
     //Amature
     else if new_ind >= 545 && new_ind < 600{
-        let avatars = ["https://arweave.net/Vp0TmR-V9-KveOrPDTkSJZr1-sixgMTMpkX6md0b7_o",
-        "https://arweave.net/uuiJD7ZkuQLK2raBUMHrxn2bej-jQaleWBylWmU9-c8",
-        "https://arweave.net/jgZN-q6a0pAaK7csoohurm-zHq54AP8LRHw3PcLDBq0",
-        "https://arweave.net/Se6q3t37ecQi-qjMY4J_Zkgair6tpeUXREBncIG1uiY",
-        "https://arweave.net/ht4duIHkYFqEzOdkUyrUHyTBQJPyBfK8dGmUtWCCmv4",
-        "https://arweave.net/Xa42ocgmuaGjCbKh_z4uqoflJ203w8mLG1u7cshqoUQ"];
+        let avatars =["https://arweave.net/aHxrUZhvlBlwKl5fS0R7xeVb7cSiUO2DrjtkymGZmYA",
+        "https://arweave.net/T61vjM7QnPX_1xF2pYeqXefzAeFN36CoJVWhAYpqOqQ",
+        "https://arweave.net/e37eKriHf96MTgTkQQf-MoqPqetJzgLxstLQqZKoDxE",
+        "https://arweave.net/plH8N9Y-hlR0wZBreKvoGrWebOfNrsfGEqLf2N8QSsE",
+        "https://arweave.net/O3v3x7bDzmmoegsOJD-0PaXZZp5nYaDErjQ16LMOrm8",
+        "https://arweave.net/EY8tIfzsjz2GVKgojuYw5aD6993TsETZN_2ybkZVdak"];
 
-        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
+        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 4)
     }
     //Local
     else if new_ind < 100{
-        let avatars =  ["https://arweave.net/kpQ38aRBSdtbwdKn61v626YSBMLR0JGGMXkRWBip_dQ",
-        "https://arweave.net/7cN_ghHZlRf30N61Eh2do5h2K-xRGnHjyKrsCTkhec4",
-        "https://arweave.net/rKmeBpwN3DXwBrG6QqSxU30EHNOdXjUebPj0Xl-rCgA",
-        "https://arweave.net/zapAnS4W3gLO-6m_zEI3HNUEfTfzOLe51b5sm4FGwNg",
-        "https://arweave.net/Yy3wG4UDpeBCHGr6s9FKQOl6x0zjo_jHjmWP1I6Hcbw",
-        "https://arweave.net/6eo3M2V9tP-xkPQ9S0RRp4cnRcddGXYCs_yKAEXs3Mc",
-        "https://arweave.net/IEsRi8tuErw0NpxQ6_wZXo7knPjuS9aRe8HwwPsPzRc",
-        "https://arweave.net/JsQ5_kCISftFJr4A0GhY0MavKY6-nYjn2WNAo_-jq_M"];
-        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
+        let avatars =  ["https://arweave.net/s6BsAVvf6ghtUKt1H8eoirE-yZBPvBjqN3Wyguyc1e8",
+        "https://arweave.net/b7qTQMMzzBPmCKFPYb930axSH-EmZ-nGg3AROB-QZQA",
+        "https://arweave.net/PF361VjEBHx81b9CTxZfnCO2XNJ3L3caGIQj9DyuDrg",
+        "https://arweave.net/jUt_Epc5vFBsDfTHMIcuVybofVN8mbS9CpcmZD3fjHs",
+        "https://arweave.net/BKiGDPit3T1xVFZ2Wc1QLbTsfo2sTLcNokbqlx2Y-uY",
+        "https://arweave.net/HVzFwe4ZCEg_hEM4bkLsRC7FsLrwFfo_9PBb8Sy9J4Y",
+        "https://arweave.net/lbD_lTQjomJkvpTXZ6hiGWNkpsN0d2GUbst6zpmEdYs",
+        "https://arweave.net/c9I8MC-4T5zzGsLy5LJ-Hj3ocZ05KaafqMp5annaONM"];
+        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 3)
     }
     //Casual
     else if new_ind > 800{
-        let avatars = ["https://arweave.net/tch0HhWhGM_nasO1UhN0l2LcTfbxv6H4ErmaXtguGZQ",
-        "https://arweave.net/7zgVUHtuj4PKHtNzMkMf4GAxwLxO3z_gU1z56HUnRJE",
-        "https://arweave.net/ruV2Lplf5Op0FETi5tuLIYt8lhQRnIQL5II8K-CvVWY",
-        "https://arweave.net/Ujf7bMrLq0c5USvj53z7gi1aDUH0_9b0Hz5oyJ6NoaI",
-        "https://arweave.net/cKK4zF2fEbC42hEVrEz12NtQgPTqHxS7FQC88LDvQHU",
-        "https://arweave.net/taxxJ8OKldcfwEG1aEN-f9BmP31KXOoGPwBkFriU58A",
-        "https://arweave.net/HQ_7l7rVbcywsCsX5NN-fxGjXKxaoKlRoHnBJfviURg",
-        "https://arweave.net/3N_WNaGyrWnycg9mbAPaCwWL2Kdpz-aR27eHo1Tak7w",
-        "https://arweave.net/Xf2Snxtqx9rL6v9uqqv3d17IsIBhlSrmlcWToaqfPZ8",
-        "https://arweave.net/n4YbLErqT8J2mJZTbwZbYXCmV_5Rh-AnlH34DefJx4c",
-        "https://arweave.net/a2MgzkSKaN5bOi1CqXt-m5N-y89Z2Sv6ME7oTdB7gZg"];
+        let avatars = ["https://arweave.net/IxukmJfBlOuSepj2hdaqyTLmaTnDZXQnqJTs97qr-lA",
+        "https://arweave.net/vlb-F7-S-qdYmvXVpK4GExTp_obewqdA_yFUeSQ0I14",
+        "https://arweave.net/UN8cD_YeTYBj7qvxw6ehsTlen-LotD-tKmFLG54LGrU",
+        "https://arweave.net/jVYynpUgTQMqZJdYz2KRoJweDu_3kh-swyVmCbNoGVw",
+        "https://arweave.net/WRSuzjG5uWeItfBzGUwK7h12nlT_uYXnzEG8Tq7fg8M",
+        "https://arweave.net/PWrCyeV0KXCT1Q0fCZBA9DFhIErsT0vDK__WlpmMka8",
+        "https://arweave.net/TODSEFXy_znd-HQV2rXfPYTumscOXtShvVU2MeRcbI0",
+        "https://arweave.net/0mkC4YFF2SDckKNTSU2nqS9Xxa7DEhCodvqwhe8oh3o",
+        "https://arweave.net/4hhUOFtBpPHQrNRwkDJKpQpvW4wL5Dux5wjYd6v0SHs",
+        "https://arweave.net/YVBheCFbLPF3cksqZfYCWc0rReZDVLUS782ViWNk-tc",
+        "https://arweave.net/GvirKFNoGQ1PhCzkNyG5BDINVlnaZ9Nj7T_PPf6FbR8"];
 
-        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
+        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 2)
     }
     //NewB
     else {
-        let avatars = ["https://arweave.net/dERd63m8IANJibpM34YisI8Gkch1AHzT31ZL7wFPIy8",
-        "https://arweave.net/JDBATePKdD9ssUO16PT5gzH4hEIQ_g2GLB8rBCV23OA",
-        "https://arweave.net/Ttpbgz2SxyOmNHXbVNyp99BmQFRLEUUG13NhBlT3tTQ",
-        "https://arweave.net/R8OKcmnmzyJ-Z7msImFCOCfoOB_6EFC1qdWU-uf9lBM",
-        "https://arweave.net/gBsTj_Nl5qe0jPX6o0yd7d42_l7V5KI86FD7mswZ2Vs",
-        "https://arweave.net/XFIqfE0SOPNezRkiNaRCunjN14pYwrWhRHf6hzg3Cis",
-        "https://arweave.net/s108r3FmWHnyUbAUW51WiPfVURJAANmGOYcmWoU73Qg",
-        "https://arweave.net/T3fRbZBso7qk0sKRtGg7VUeLCy3xUyJMTkE8hZ1OelM",
-        "https://arweave.net/44opKnjpKtsNB3uXQVWzP4S8XxyxoQpINHorzg3CoO0",
-        "https://arweave.net/QZLXciA8DoyFZP3Z_pp4Si3k5Pwg-xHpPiYckbiFh40"];
-        avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()]
+        let avatars = ["https://arweave.net/x_6w07Fdw-AD48dS4BRbXyQQtWKm9nzQS10zqBeLGV8",
+        "https://arweave.net/z7IuHYAz1vmY6aN3e9aDpYK3QP31muhP_C5L7-4o-4c",
+        "https://arweave.net/uV_No3g8qVOoTEKCoIPUvdQRvZjapZ7ryC7PKkDtoSQ",
+        "https://arweave.net/OD9qv9iHThs9qU_S7HIrWo7vxjMxOl6OkVbiq2CWq0o",
+        "https://arweave.net/t6W1W_FIUqon4qPT1srhINpbEZXeIgnc5k1HyVe4aA4",
+        "https://arweave.net/HqedV5z0wI0boB1EgERV3x-9LeZqOFB8E6qRY7AarKk",
+        "https://arweave.net/t3FEIA2ciOXEPCtojae_e9IiEiR6-urIq2agK5AHOYA",
+        "https://arweave.net/EFa2XB5NSWedSEdcVu_UMO6vEZP5mEikBqfJoRHdI0I",
+        "https://arweave.net/KRNDxr6O8YQremLzPLeut7Cv5sLNozov0Qa5BgZuTdM",
+        "https://arweave.net/c2cmZycexv1xAfyMIn0j1uu6CMmnEQ0KSgoIZphQBOw"];
+        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 1)
     }
 
 }
 
 
-pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
+fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Option<u8>) -> ProgramResult{
     
     let account_info_iter = &mut accounts.iter();
 
@@ -285,6 +301,8 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let mut mult = current_timestamp as f32;
     let mut cnt = 0;
 
+    msg!("Hello_C_1");
+
     while cnt <10 {
         ves[cnt] = (mult as u32 % 256) as u8;
         mult = mult / 7.0;
@@ -296,14 +314,18 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         index_uri += (*i as u32) * (*i as u32);
     }
 
+    let (selected_uri, rarity) = select_uri(index_uri, selected_rarity);
+
+    msg!("Hello_C_2");
+
     let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
 
     if *metadata_pda_info.key != metadata_pda{
         Err(ProgramError::InvalidAccountData)?
     }
-    
+    msg!("Hello_C_3");
     invoke_signed(
-        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Gamestree Avatar".to_string(), "Gtree".to_string(), select_uri(index_uri).to_string(), Some(creators), 500, true, true),
+        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Gamestree Avatar".to_string(), "Gtree".to_string(), selected_uri.to_string(), Some(creators), 500, true, true),
         &[
             metadata_pda_info.clone(),
             mint_account_info.clone(),
@@ -315,6 +337,8 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         ],
         &[signers_seeds]
     )?;
+
+    msg!("Hello_C_4");
 
     invoke_signed(
         &instruction::update_primary_sale_happened_via_token(id(), *metadata_pda_info.key, *payer_account_info.key, *associated_account_info.key),
@@ -393,6 +417,8 @@ pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let avatar_pda_account_data = AvatarData{
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
+        numeration: sales_account_data.counter,
+        rarity: rarity,
         level: 0,
         xp: 0,
     };
@@ -437,6 +463,7 @@ pub enum InstructionEnum{
     UnlockMint,
     ClaimXp{xp_increase:u32},
     CreateSalesAccount,
+    BurnNFTs{rarity: u8}
 }
 
 impl InstructionEnum{
@@ -451,6 +478,8 @@ impl InstructionEnum{
                     total_increase += *unit_increase as u32;
                 }
                 Ok(Self::ClaimXp{xp_increase:total_increase})}
+            3 => {Ok(Self::CreateSalesAccount)}
+            4 => {Ok(Self::BurnNFTs{rarity: data[1]})}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -589,9 +618,77 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], to_increase_by: u32) 
     }
 
     avatar_pda_account_data.xp += to_increase_by;
-    avatar_pda_account_data.level = (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0)).floor() as u8;
+    avatar_pda_account_data.level = (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0)) as u8;
     avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     Ok(())
+}
+
+fn num_to_burn(rarity:u8) -> Result<u8, ProgramError>{
+    match rarity{
+        1=>{Ok(3)}
+        2=>{Ok(2)}
+        3=>{Ok(2)}
+        4=>{Ok(2)}
+        5=>{Ok(4)}
+        6=>{Ok(10)}
+        _=>{Err(ProgramError::InvalidInstructionData)?}
+    }
+}
+
+fn burn_nft(program_id: &Pubkey, accounts: &[AccountInfo], rarity: u8)-> ProgramResult{
+
+    let account_info_iter = &mut accounts.iter();
+
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    let _ = next_account_info(account_info_iter)?;
+    
+
+    let num_to_burn = match num_to_burn(rarity){
+        Ok(num) => { num }
+        Err(_) => {Err(ProgramError::InvalidInstructionData)?}
+    };
+
+    msg!("Hellow_Bn_1");
+    for _num_burned in 0..num_to_burn{
+
+        let curr_associated_account_info = next_account_info(account_info_iter)?;
+        let curr_mint_account_info = next_account_info(account_info_iter)?;
+        let curr_avatar_data_pda_info = next_account_info(account_info_iter)?;
+
+
+        let avatar_data_pda_seed: &[&[u8]; 3] = &[
+            b"avatar_data_pda",
+            &curr_mint_account_info.key.to_bytes(),
+            &curr_associated_account_info.key.to_bytes()
+        ];
+        let curr_avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&curr_avatar_data_pda_info.data.borrow())?;
+        let (curr_avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
+        if curr_avatar_data_pda_info.key != &curr_avatar_data_pda{
+            msg!("Error_Bn_1");
+            Err(ProgramError::InvalidAccountData)?
+        }
+        if curr_avatar_pda_account_data.rarity != rarity{
+            msg!("Error_Bn_2");
+            Err(ProgramError::InvalidAccountData)?
+        }
+        invoke(
+            &burn(token_program_info.key, curr_associated_account_info.key, curr_mint_account_info.key, payer_account_info.key, &[], 1)?,
+            &[curr_associated_account_info.clone(), curr_mint_account_info.clone(), payer_account_info.clone()],
+        )?;
+    }
+    msg!("Hellow_Bn_2");
+    Ok(mint_nft(program_id, accounts, Some(rarity+1))?)
 }
 
 pub fn process_instructions(
@@ -603,7 +700,7 @@ pub fn process_instructions(
         match instruction {
 
             InstructionEnum::MintNft =>{
-                mint_nft(program_id, accounts)
+                mint_nft(program_id, accounts, None)
             }
             InstructionEnum::UnlockMint => {
                 unlock_account(program_id, accounts)
@@ -611,8 +708,11 @@ pub fn process_instructions(
 
             InstructionEnum::ClaimXp{xp_increase} =>{
                 claim_xp(program_id, accounts, xp_increase)
+
             }
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
+
+            InstructionEnum::BurnNFTs{rarity} => {burn_nft(program_id, accounts, rarity)}
         }
 }
 
