@@ -1,1 +1,0 @@
-/mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/target/bpfel-unknown-unknown/release/cyrial_helloworld.so: /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/src/lib.rs

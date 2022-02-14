@@ -1,8 +1,0 @@
-c:\Users\ckamd\OneDrive\Desktop\Rust_Solana\cyrial_helloworld\program\target\debug\deps\solana_config_program-0f401a8be5f5de13.rmeta: C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\lib.rs C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\config_instruction.rs C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\config_processor.rs C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\date_instruction.rs
-
-c:\Users\ckamd\OneDrive\Desktop\Rust_Solana\cyrial_helloworld\program\target\debug\deps\solana_config_program-0f401a8be5f5de13.d: C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\lib.rs C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\config_instruction.rs C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\config_processor.rs C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\date_instruction.rs
-
-C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\lib.rs:
-C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\config_instruction.rs:
-C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\config_processor.rs:
-C:\Users\ckamd\.cargo\registry\src\github.com-1ecc6299db9ec823\solana-config-program-1.9.6\src\date_instruction.rs:
