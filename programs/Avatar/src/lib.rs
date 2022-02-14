@@ -154,7 +154,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 }
 
 
-fn get_price(sales_account_data:Sales) -> u64{
+fn get_price(sales_account_data: &Sales) -> u64{
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
     (unitary  * (i32::pow(10,9) as f32)) as u64
@@ -207,7 +207,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
-    let price = get_price(sales_account_data);
+    let price = get_price(&sales_account_data);
 
     msg!("Current timestamp: {:?}", current_timestamp);
     let locked_time = lock_time(sales_account_data.counter as f32);
@@ -328,8 +328,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let (selected_uri, rarity) = select_uri(index_uri, selected_rarity);
 
     msg!("Hello_C_2");
-
-    let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
 
     if *metadata_pda_info.key != metadata_pda{
         Err(ProgramError::InvalidAccountData)?
