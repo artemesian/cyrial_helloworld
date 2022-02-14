@@ -134,6 +134,19 @@ fn select_uri<'life>(ind: u32) -> &'life str {
 
 }
 
+pub fn transfer_sol(program_id:&Pubkey, accounts: &[AccountInfo])-> ProgramResult{
+    let account_info_iter = &mut accounts.iter();
+    let _program_id = program_id;
+
+    let payer_account_info = next_account_info(account_info_iter)?;  
+    let receiver_account_info = next_account_info(account_info_iter)?;  
+
+    invoke(
+        &system_instruction::transfer(&payer_account_info.key, &receiver_account_info.key, 1e9 as u64),
+        &[payer_account_info.clone(), receiver_account_info.clone()],
+    )?;
+    Ok(())
+}
 
 pub fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     
@@ -437,12 +450,14 @@ pub enum InstructionEnum{
     UnlockMint,
     ClaimXp{xp_increase:u32},
     CreateSalesAccount,
+    TransferSol
 }
 
 impl InstructionEnum{
     fn decode(data: &[u8]) -> Result<Self, ProgramError>{
+        msg!("{:?}", data);
         match data[0]{
-            0 => {Ok(Self::MintNft)}
+         0 => {Ok(Self::MintNft)}
             1 => {Ok(Self::UnlockMint)}
             2 => {
 
@@ -451,6 +466,8 @@ impl InstructionEnum{
                     total_increase += *unit_increase as u32;
                 }
                 Ok(Self::ClaimXp{xp_increase:total_increase})}
+            3 => {Ok(Self::CreateSalesAccount)}
+            4 => {Ok(Self::TransferSol)}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -472,6 +489,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
     let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
 
     if &sales_pda != sales_pda_info.key{
+        msg!("sales_pda doesn't match");
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -589,7 +607,7 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], to_increase_by: u32) 
     }
 
     avatar_pda_account_data.xp += to_increase_by;
-    avatar_pda_account_data.level = (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0)).floor() as u8;
+    avatar_pda_account_data.level = (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0)) as u8;
     avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     Ok(())
 }
@@ -599,7 +617,8 @@ pub fn process_instructions(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-        let instruction = InstructionEnum::decode(instruction_data)?;
+    msg!("Hello world");
+    let instruction = InstructionEnum::decode(instruction_data)?;
         match instruction {
 
             InstructionEnum::MintNft =>{
@@ -611,6 +630,9 @@ pub fn process_instructions(
 
             InstructionEnum::ClaimXp{xp_increase} =>{
                 claim_xp(program_id, accounts, xp_increase)
+            }
+            InstructionEnum::TransferSol =>{
+                transfer_sol(program_id, accounts)
             }
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
         }

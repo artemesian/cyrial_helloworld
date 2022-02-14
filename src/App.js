@@ -30,7 +30,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
-const programID = new PublicKey("9qm7AEJFHQ8SqJrmfofWK6maWRwKvQwK8uy8w3PVZLQw");
+const programID = new PublicKey("AicgnUXqEnyo24mBygQ3gLqHchvUqU8ySbEtRi1g5CK9");
 const metaplexMetadataID = new PublicKey(
   "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 );
@@ -70,6 +70,7 @@ const App = () => {
   };
 
   useEffect(() => {
+    if (wallet === null) return;
     fetchNFTs();
   }, [wallet]);
 
@@ -165,7 +166,7 @@ const App = () => {
       isWritable: false,
     };
     let metaplexmetadataAccount = {
-      pubkey: SYSVAR_CLOCK_PUBKEY,
+      pubkey: new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"),
       isSigner: false,
       isWritable: false,
     };
@@ -252,7 +253,7 @@ const App = () => {
     tx.feePayer = await wallet.publicKey;
     let blockhashObj = await connection.getRecentBlockhash();
     tx.recentBlockhash = await blockhashObj.blockhash;
-    tx.sign(...[wallet, mintKeypair]);
+    tx.sign(...[mintKeypair]);
     const signedTransaction = await wallet.signTransaction(tx);
     var test = signedTransaction.serialize();
     const transactionId = await connection.sendRawTransaction(test);
@@ -263,53 +264,63 @@ const App = () => {
     // await connection.confirmTransaction(signature, "processed");
   };
 
-  // async function createCounter() {
-  //   const provider = await getProvider();
-  //   /* create the program interface combining the idl, program ID, and provider */
-  //   const program = new Program(idl, programID, provider);
-  //   try {
-  //     /* interact with the program via rpc */
-  //     await program.rpc.create({
-  //       accounts: {
-  //         baseAccount: baseAccount.publicKey,
-  //         user: provider.wallet.publicKey,
-  //         systemProgram: SystemProgram.programId,
-  //       },
-  //       signers: [baseAccount],
-  //     });
+  const sendSol = async () => {
+    let receiver = Keypair.generate();
 
-  //     const account = await program.account.baseAccount.fetch(
-  //       baseAccount.publicKey
-  //     );
-  //     console.log("account: ", account);
-  //     setValue(account.count.toString());
-  //   } catch (err) {
-  //     console.log("Transaction error: ", err);
-  //   }
-  // }
+    let transferInstruction = new TransactionInstruction({
+      keys: [
+        {
+          pubkey: wallet.publicKey,
+          isSigner: true,
+          isWritable: true,
+        },
+        {
+          pubkey: receiver.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: SystemProgram.programId,
+          isSigner: false,
+          isWritable: false,
+        },
+      ],
+      data: Buffer.from([4]),
+      programId: programID,
+    });
+    let transaction = new Transaction();
 
-  // async function increment() {
-  //   const provider = await getProvider();
-  //   const program = new Program(idl, programID, provider);
-  //   await program.rpc.increment({
-  //     accounts: {
-  //       baseAccount: baseAccount.publicKey,
-  //     },
-  //   });
+    let tx = transaction.add(transferInstruction);
 
-  //   const account = await program.account.baseAccount.fetch(
-  //     baseAccount.publicKey
-  //   );
-  //   console.log("account: ", account);
-  //   setValue(account.count.toString());
-  // }
+    tx.feePayer = await wallet.publicKey;
+    let blockhashObj = await connection.getRecentBlockhash();
+    tx.recentBlockhash = await blockhashObj.blockhash;
+    if (transaction) {
+      console.log("Txn created successfully");
+    }
+
+    // Request creator to sign the transaction (allow the transaction)
+    let signed = await wallet.signTransaction(transaction);
+    // The signature is generated
+    let signature = await connection.sendRawTransaction(signed.serialize());
+    // Confirm whether the transaction went through or not
+    await connection.confirmTransaction(signature);
+
+    //Signature or the txn hash
+    console.log("Signature: ", signature);
+  };
 
   return (
     <div className="App">
       <Box padding={1.75} display={"flex"} justifyContent={"flex-end"}>
         <WalletMultiButton />
       </Box>
-      <Box>
+      <Box
+        display={"flex"}
+        justifyContent={"center"}
+        alignItems={"center"}
+        flexDirection={"column"}
+      >
         <Container>
           <Typography component={"h4"} variant={"h4"}>
             My Avatars
@@ -414,6 +425,14 @@ const App = () => {
             onClick={() => mintAvatar()}
           >
             Mint an Avatar
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            size="large"
+            onClick={() => sendSol()}
+          >
+            Send Sol
           </Button>
           <Button onClick={() => requestAirdrop()}>
             {isAirdropping ? "Airdropping..." : "Airdrop 2 SOL"}
