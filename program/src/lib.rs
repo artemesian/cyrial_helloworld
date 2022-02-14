@@ -480,8 +480,9 @@ pub enum InstructionEnum{
 
 impl InstructionEnum{
     fn decode(data: &[u8]) -> Result<Self, ProgramError>{
+        msg!("{:?}", data);
         match data[0]{
-            0 => {Ok(Self::MintNft)}
+         0 => {Ok(Self::MintNft)}
             1 => {Ok(Self::UnlockMint)}
             2 => {
                 let num_mints = get_num_cnt(&data[1..4]);
@@ -515,6 +516,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
     let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
 
     if &sales_pda != sales_pda_info.key{
+        msg!("sales_pda doesn't match");
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -713,7 +715,8 @@ pub fn process_instructions(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-        let instruction = InstructionEnum::decode(instruction_data)?;
+    msg!("Hello world");
+    let instruction = InstructionEnum::decode(instruction_data)?;
         match instruction {
 
             InstructionEnum::MintNft =>{
@@ -727,6 +730,7 @@ pub fn process_instructions(
                 claim_xp(program_id, accounts, xp_claims)
 
             }
+
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
 
             InstructionEnum::BurnNFTs{rarity} => {burn_nft(program_id, accounts, rarity)}
