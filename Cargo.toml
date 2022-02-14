@@ -11,7 +11,7 @@ edition = "2021"
 
 [dependencies]
 borsh = "0.9.1"
-# borsh-derive = "0.9.1"
+borsh-derive = "0.9.1"
 solana-program = "1.9.5"
 spl-token = { version = "3.2.0", features = ["no-entrypoint"]}
 spl-associated-token-account = { version = "1.0.3", features = ["no-entrypoint"]}

@@ -15,7 +15,8 @@ use solana_program::{
 };
 use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::*;
-use metaplex_token_metadata::{instruction, id, state::{Creator}};
+use metaplex_token_metadata::{instruction, state::{Creator}};
+use metaplex_token_metadata::id;
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
 use std::str::FromStr;
@@ -28,7 +29,7 @@ pub struct Sales{
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
-pub struct AvatarData{// Find out how to use the clock on solana
+pub struct AvatarData{
     pub date_created: u32,
     pub unlockable_date: u32,
     pub numeration: u32,
