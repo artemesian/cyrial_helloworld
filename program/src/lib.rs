@@ -15,7 +15,8 @@ use solana_program::{
 };
 use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::*;
-use metaplex_token_metadata::{instruction, id, state::{Creator}};
+use metaplex_token_metadata::{instruction, state::{Creator}};
+use metaplex_token_metadata::id;
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
 use std::str::FromStr;
@@ -28,7 +29,7 @@ pub struct Sales{
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
-pub struct AvatarData{// Find out how to use the clock on solana
+pub struct AvatarData{
     pub date_created: u32,
     pub unlockable_date: u32,
     pub numeration: u32,
@@ -313,6 +314,8 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     for i in new_hash.to_bytes().iter(){
         index_uri += (*i as u32) * (*i as u32);
     }
+    msg!("Hello_C_0");
+    let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
 
     let (selected_uri, rarity) = select_uri(index_uri, selected_rarity);
 
