@@ -314,6 +314,8 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     for i in new_hash.to_bytes().iter(){
         index_uri += (*i as u32) * (*i as u32);
     }
+    msg!("Hello_C_0");
+    let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
 
     let (selected_uri, rarity) = select_uri(index_uri, selected_rarity);
 
