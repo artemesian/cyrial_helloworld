@@ -45,7 +45,9 @@ pub fn lock_time(counter:f32)->u32{
     (365.0 * 8640.0 / e_power) as u32
 }
 
-
+fn get_num_cnt(arr: &[u8]) -> u32 {
+    arr[0] as u32 * arr[1] as u32 + arr[2] as u32
+}
 
 fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 
@@ -152,6 +154,12 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 }
 
 
+fn get_price(sales_account_data:Sales) -> u64{
+    let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
+
+    (unitary  * (i32::pow(10,9) as f32)) as u64
+}
+
 fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Option<u8>) -> ProgramResult{
     
     let account_info_iter = &mut accounts.iter();
@@ -199,7 +207,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
-    let price = (unitary  * (i32::pow(10,9) as f32)) as u64;
+    let price = get_price(sales_account_data);
 
     msg!("Current timestamp: {:?}", current_timestamp);
     let locked_time = lock_time(sales_account_data.counter as f32);
@@ -464,10 +472,11 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 pub enum InstructionEnum{
     MintNft,
     UnlockMint,
-    ClaimXp{xp_increase:u32},
+    ClaimXp{xp_claims:Vec<u32>},
     CreateSalesAccount,
     BurnNFTs{rarity: u8}
 }
+
 
 impl InstructionEnum{
     fn decode(data: &[u8]) -> Result<Self, ProgramError>{
@@ -475,12 +484,14 @@ impl InstructionEnum{
             0 => {Ok(Self::MintNft)}
             1 => {Ok(Self::UnlockMint)}
             2 => {
-
-                let mut total_increase: u32 = 0;
-                for unit_increase in data[1..].iter() {
-                    total_increase += *unit_increase as u32;
+                let num_mints = get_num_cnt(&data[1..4]);
+                let mut xp_claims: Vec<u32> = Vec::new();
+                for i in 0..num_mints{
+                    let ind = i as usize * (3) + 1 + 3;
+                    let total_increase = get_num_cnt(&data[ind+32 .. ind+32+3]);
+                    xp_claims.push(total_increase);
                 }
-                Ok(Self::ClaimXp{xp_increase:total_increase})}
+                Ok(Self::ClaimXp{xp_claims:xp_claims})}
             3 => {Ok(Self::CreateSalesAccount)}
             4 => {Ok(Self::BurnNFTs{rarity: data[1]})}
             _ => {Err(ProgramError::InvalidInstructionData)}
@@ -596,33 +607,36 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     Ok(())
 }
 
-fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], to_increase_by: u32) -> ProgramResult{
+fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
     
     let payer_account_info = next_account_info(account_info_iter)?;
-    let mint_account_info = next_account_info(account_info_iter)?;
-    let associated_account_info = next_account_info(account_info_iter)?;
-    let avatar_data_pda_info = next_account_info(account_info_iter)?;
 
     if !payer_account_info.is_signer || payer_account_info.key !=  &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
         Err(ProgramError::InvalidAccountData)?
     }
 
+    for to_increase_by in 0..xp_claims.len(){
 
-    let avatar_data_pda_seed: &[&[u8]; 3] = &[
-        b"avatar_data_pda",
-        &mint_account_info.key.to_bytes(),
-        &associated_account_info.key.to_bytes()
-    ];
-    let mut avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
-    let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
-    if avatar_data_pda_info.key != &avatar_data_pda{
-        Err(ProgramError::InvalidAccountData)?
+        let mint_account_info = next_account_info(account_info_iter)?;
+        let associated_account_info = next_account_info(account_info_iter)?;
+        let avatar_data_pda_info = next_account_info(account_info_iter)?;
+
+        let avatar_data_pda_seed: &[&[u8]; 3] = &[
+            b"avatar_data_pda",
+            &mint_account_info.key.to_bytes(),
+            &associated_account_info.key.to_bytes()
+        ];
+        let mut avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+        let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
+        if avatar_data_pda_info.key != &avatar_data_pda{
+            Err(ProgramError::InvalidAccountData)?
+        }
+
+        avatar_pda_account_data.xp += to_increase_by as u32;
+        avatar_pda_account_data.level = (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0)) as u8;
+        avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     }
-
-    avatar_pda_account_data.xp += to_increase_by;
-    avatar_pda_account_data.level = (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0)) as u8;
-    avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     Ok(())
 }
 
@@ -709,8 +723,8 @@ pub fn process_instructions(
                 unlock_account(program_id, accounts)
             }   
 
-            InstructionEnum::ClaimXp{xp_increase} =>{
-                claim_xp(program_id, accounts, xp_increase)
+            InstructionEnum::ClaimXp{xp_claims} =>{
+                claim_xp(program_id, accounts, xp_claims)
 
             }
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
