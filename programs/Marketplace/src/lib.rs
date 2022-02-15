@@ -5,6 +5,7 @@ use solana_program::{
     entrypoint::ProgramResult,
     program::{invoke, invoke_signed},
     msg,
+    // clock::Clock,
     pubkey::Pubkey,
     program_error::ProgramError,
     system_instruction,
@@ -20,7 +21,7 @@ entrypoint!(process_instructions);
 
 
 enum InstructionEnum{
-    CreateCollection,
+    CreateCollection{rentable: bool},
     CreateLimitOrder{
         price: u32
     },
@@ -35,7 +36,22 @@ struct CollectionData{
     min_listed: u32,
     max_listed: u32,
     max_ever: u32,
+    rentable: bool,
+    rent_min_listed: u32,
+    rent_max_listed: u32,
+    rent_max_ever: u32,
 }
+
+
+#[derive(BorshSerialize, BorshDeserialize)]
+struct AccountRentSpace{
+    state: bool,
+    nft_owner: Pubkey,
+    mint_id: Pubkey,
+    container_bump: u32,
+}
+
+
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct ContainerData{
@@ -46,16 +62,29 @@ struct ContainerData{
     state: bool,
 }
 
+// #[derive(BorshSerialize, BorshDeserialize)]
+// struct RentContainerData{
+//     collection_address: Pubkey,
+//     mint_address: Pubkey,
+//     owner: Pubkey,
+//     renter: Pubkey,
+//     state: bool,
+//     rent_price: f32,
+//     duration: u64,
+//     ending_date: u64, 
+//     earnings_percentage : f32,
+//     cummulative_5week_hands: u32,
+// }
+
 fn get_num_cnt(arr: &[u8]) -> u32 {
     arr[0] as u32 * arr[1] as u32 + arr[2] as u32
 }
 
 impl InstructionEnum{
-    fn decode_instrction(data: &[u8]) -> Result<Self, ProgramError> {
+    fn decode_instruction(data: &[u8]) -> Result<Self, ProgramError> {
        Ok(match data[0]{
             0 => {
-                
-                Self::CreateCollection
+                Self::CreateCollection{rentable: if data[1] == 1 {true} else {false}}
             }
             1 => {
                 let price = ((get_num_cnt(&data[0..3]) as f32  + (get_num_cnt(&data[3..6]) as f32) / 10000.0) * (10.0 as f32).powf(9.0) as f32) as u32; // maximum price it can be listed is = 65286.5280
@@ -75,7 +104,7 @@ impl InstructionEnum{
     }
 }
 
-fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
+fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bool) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
 
 
@@ -103,6 +132,11 @@ fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRe
         min_listed: 0,
         max_listed: 0,
         max_ever: 0,
+        rentable: rentable,
+        rent_min_listed: 0,
+        rent_max_listed: 0,
+        rent_max_ever: 0,
+        
     };
 
     collection_data.serialize(&mut &mut collection_pda_info.data.borrow_mut()[..])?;
@@ -227,11 +261,11 @@ fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u32)
 
 
 fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult{
-    let instruction  = InstructionEnum::decode_instrction(instruction_data)?;
+    let instruction  = InstructionEnum::decode_instruction(instruction_data)?;
  
     match instruction{
-        InstructionEnum::CreateCollection => {
-           create_collection(program_id, accounts)?
+        InstructionEnum::CreateCollection{rentable} => {
+           create_collection(program_id, accounts, rentable)?
         }
         InstructionEnum::CreateLimitOrder{price} => {
             if price > 65000{
