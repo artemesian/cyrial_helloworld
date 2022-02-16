@@ -43,14 +43,6 @@ struct CollectionData{
 }
 
 
-#[derive(BorshSerialize, BorshDeserialize)]
-struct AccountRentSpace{
-    state: bool,
-    nft_owner: Pubkey,
-    mint_id: Pubkey,
-    container_bump: u32,
-}
-
 
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -184,7 +176,7 @@ fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u32)
         let current_container_data: ContainerData = try_from_slice_unchecked(&container_account_info.data.borrow())?;
         if current_container_data.state == true{
             msg!("current Container doesn't seem to be Empty, Big Problem");
-            Err(ProgramError::InvalidSeeds)?
+            Err(ProgramError::Custom(1))?
         }
     }
     let new_container_data = ContainerData{

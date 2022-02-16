@@ -62,6 +62,15 @@ struct RentContainerData{
 }
 
 
+#[derive(BorshSerialize, BorshDeserialize)]
+struct AccountRentSpace{
+    state: bool,
+    nft_owner: Pubkey,
+    mint_id: Pubkey,
+    container_bump: u32,
+}
+
+
 fn get_num_cnt(arr: &[u8]) -> u32 {
     arr[0] as u32 * arr[1] as u32 + arr[2] as u32
 }
@@ -638,6 +647,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let avatar_data_pda_info = next_account_info(account_info_iter)?;
     let rent_container_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
+    let account_rent_space_info = next_account_info(account_info_iter)?;
     let mint_owner_info = next_account_info(account_info_iter)?;
 
 
@@ -649,6 +659,13 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
 
     if !payer_account_info.is_signer{
         Err(ProgramError::InvalidAccountData)?
+    }
+
+
+    let (account_rent_pda, _account_rent_pda_bump) = Pubkey::find_program_address(&[b"account_rent_space", &payer_account_info.key.to_bytes()], program_id);
+
+    if account_rent_pda != *account_rent_space_info.key{
+        Err(ProgramError::Custom(1))?
     }
 
     let avatar_data_pda_seed: &[&[u8]; 2] = &[
@@ -676,7 +693,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
 
     if rent_container_data.ending_date > current_timestamp as u64 || avatar_data.use_authority != rent_container_data.owner{
-        Err(ProgramError::Custom(1))?
+        Err(ProgramError::Custom(2))?
     }
 
     if rent_container_data.rent_price != 0.0 {
@@ -690,7 +707,18 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     avatar_data.use_authority = *payer_account_info.key;
     rent_container_data.renter = *payer_account_info.key;
     rent_container_data.ending_date = current_timestamp as u64 + rent_container_data.duration;
+    let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
+    if temp_account_rent_data.state{
+        Err(ProgramError::Custom(3))?
+    }
+    let account_rent_data = AccountRentSpace{
+        state: true,
+        nft_owner: rent_container_data.owner,
+        mint_id: *mint_account_info.key,
+        container_bump: avatar_data.rent_bump,
+    };
 
+    account_rent_data.serialize(&mut &mut account_rent_space_info.data.borrow_mut()[..])?;
     avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     rent_container_data.serialize(&mut &mut rent_container_pda_info.data.borrow_mut()[..])?;
 
