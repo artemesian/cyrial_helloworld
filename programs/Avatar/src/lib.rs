@@ -75,8 +75,25 @@ fn get_num_cnt(arr: &[u8]) -> u32 {
     arr[0] as u32 * arr[1] as u32 + arr[2] as u32
 }
 
-fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
+fn get_rand_num(current_timestamp: f32, mint_key:&Pubkey, program_id: &Pubkey) -> u32 {
+    let mut ves: [u8; 10] = [0;10];
+    let mut mult = current_timestamp;
+    let mut cnt = 0;
+    while cnt <10 {
+        ves[cnt] = (mult as u32 % 256) as u8;
+        mult = mult / 7.0;
+        cnt += 1;
+    }
+    let new_hash = hash::hashv(&[&ves, &mint_key.to_bytes(), &program_id.to_bytes()]);
+    let mut index_uri: u32 = 0;
+    for i in new_hash.to_bytes().iter(){
+        index_uri += (*i as u32) * (*i as u32);
+    }
 
+    index_uri
+}
+
+fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 
     let new_ind = match rarity{
          Some(rar) => {
@@ -330,26 +347,26 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     creators.push(Creator{address: *mint_authority_info.key, verified: true, share: 0});
     creators.push(Creator{address: *vault.key, verified:false, share:100});
 
-    let mut ves: [u8; 10] = [0;10];
-    let mut mult = current_timestamp as f32;
-    let mut cnt = 0;
+    // let mut ves: [u8; 10] = [0;10];
+    // let mut mult = current_timestamp as f32;
+    // let mut cnt = 0;
 
-    msg!("Hello_C_1");
+    // msg!("Hello_C_1");
 
-    while cnt <10 {
-        ves[cnt] = (mult as u32 % 256) as u8;
-        mult = mult / 7.0;
-        cnt += 1;
-    }
-    let new_hash = hash::hashv(&[&ves, &mint_account_info.key.to_bytes(), &program_id.to_bytes()]);
-    let mut index_uri: u32 = 0;
-    for i in new_hash.to_bytes().iter(){
-        index_uri += (*i as u32) * (*i as u32);
-    }
+    // while cnt <10 {
+    //     ves[cnt] = (mult as u32 % 256) as u8;
+    //     mult = mult / 7.0;
+    //     cnt += 1;
+    // }
+    // let new_hash = hash::hashv(&[&ves, &mint_account_info.key.to_bytes(), &program_id.to_bytes()]);
+    // let mut index_uri: u32 = 0;
+    // for i in new_hash.to_bytes().iter(){
+    //     index_uri += (*i as u32) * (*i as u32);
+    // }
     msg!("Hello_C_0");
     let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
 
-    let (selected_uri, rarity) = select_uri(index_uri, selected_rarity);
+    let (selected_uri, rarity) = select_uri(get_rand_num(current_timestamp as f32, mint_account_info.key, program_id), selected_rarity);
 
     msg!("Hello_C_2");
 
@@ -1223,10 +1240,12 @@ mod tests {
 
     // use solana_program::pubkey::Pubkey;
 
-    use crate::{Sales, get_price};
+    use crate::{Sales, get_price, get_num_cnt, get_rand_num};
+    use solana_program::{pubkey::Pubkey, msg};
+    use std::str::FromStr;
 
     #[test]
-    fn it_works() {
+    fn testing_get_price() {
         // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
 
         let sales_account_data = Sales{
@@ -1234,8 +1253,38 @@ mod tests {
             counter :0,
             rent_min_listed: 0,
             rent_max_listed :0,
-            rent_max_ever :0
+            rent_max_ever :0,
         };
         assert_eq!(get_price(&sales_account_data), 90*10e9 as u64);
+    }
+
+    #[test]
+    fn testing_get_num_cnt(){
+        assert_eq!(get_num_cnt(&[255,255,255]), 255*255+255);
+    }
+
+    #[test]
+    fn testing_get_rand_num(){
+        let num = 100000 as f32;
+        let expected_vals = [(num*0.1/100.0) as u32, (num*1.0/100.0) as u32, (num*3.4/100.0) as u32, (num*5.5/100.0) as u32, (num*10.0/100.0) as u32, (num*20.0/100.0) as u32, (num*60.0/100.0) as u32];
+        let mut received_vals:[u32; 7] = [0,0,0,0,0,0,0];
+
+        for i in 0..num as usize{
+            let new_ind =  get_rand_num(i as f32, &Pubkey::from_str("FmyvDLhtWu1WMSUWnCpS1aTP3TvEJaCRJt1b8geD5B3J").unwrap(), &Pubkey::from_str("FmyvDLhtWu1WMSUWnCpS1aTP3TvEJaCRJt1b8geD5B3J").unwrap())%1000;
+
+            if new_ind == 689{received_vals[0] += 1;}
+            else if new_ind >= 432 && new_ind < 442{received_vals[1] += 1}
+            else if new_ind >= 600 && new_ind < 634{received_vals[2] += 1}
+            else if new_ind >= 545 && new_ind < 600{received_vals[3] += 1}
+            else if new_ind < 100{received_vals[4] += 1}
+            else if new_ind > 800{received_vals[5] += 1}
+            else{received_vals[6] += 1}
+            
+        }
+
+        msg!("{:?} : {:?}", expected_vals, received_vals);
+        for i in 0..7{
+            assert!(expected_vals[i] as f32 + 0.02 * expected_vals[i] as f32 >received_vals[i] as f32 && (expected_vals[i] as f32 - 0.02 * expected_vals[i] as f32) < received_vals[i] as f32);
+        }
     }
 }
