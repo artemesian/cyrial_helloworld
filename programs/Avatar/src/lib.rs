@@ -183,7 +183,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 fn get_price(sales_account_data: &Sales) -> u64{
     let x = sales_account_data.counter as f32;
 
-    (15.0 * ((100.0 + x.powf(0.6) +270.0*(std::f32::consts::E.powf(0.08*x - 10.0)/1.0+std::f32::consts::E.powf(0.08*x - 10.0)))/15.0) * 10e9) as u64
+    15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)).floor() as u64  * 10e9 as u64
 }
 
 fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Option<u8>) -> ProgramResult{
@@ -1217,15 +1217,25 @@ pub fn process_instructions(
         }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     // use std::str::FromStr;
+#[cfg(test)]
+mod tests {
+    // use std::str::FromStr;
 
-//     // use solana_program::pubkey::Pubkey;
+    // use solana_program::pubkey::Pubkey;
 
-//     #[test]
-//     fn it_works() {
-//         // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
-//         assert_eq!(5 * 5, 5 * 5);
-//     }
-// }
+    use crate::{Sales, get_price};
+
+    #[test]
+    fn it_works() {
+        // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
+
+        let sales_account_data = Sales{
+            vault_total :0.0,
+            counter :0,
+            rent_min_listed: 0,
+            rent_max_listed :0,
+            rent_max_ever :0
+        };
+        assert_eq!(get_price(&sales_account_data), 90*10e9 as u64);
+    }
+}
