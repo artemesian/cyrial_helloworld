@@ -864,8 +864,80 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Program
     Ok(())
 }
 
-fn end_rent(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
-    //Yet to make this contract.
+fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let mint_account_info = next_account_info(account_info_iter)?;
+    let avatar_data_pda_info = next_account_info(account_info_iter)?;
+    let rent_container_pda_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
+    let account_rent_space_info = next_account_info(account_info_iter)?;
+
+
+    let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    let current_timestamp = clock.unix_timestamp as u32;
+
+    if !payer_account_info.is_signer{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+
+    let (account_rent_pda, _account_rent_pda_bump) = Pubkey::find_program_address(&[b"account_rent_space", &payer_account_info.key.to_bytes()], program_id);
+
+    if account_rent_pda != *account_rent_space_info.key{
+        Err(ProgramError::Custom(1))?
+    }
+
+    let avatar_data_pda_seed: &[&[u8]; 2] = &[
+        b"avatar_data_pda",
+        &mint_account_info.key.to_bytes(),
+    ];
+
+
+    let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id); 
+    if avatar_data_pda_info.key != &avatar_data_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+
+    
+    let collection_unique_bump = avatar_data.rent_bump;
+    let (container_pda, _container_pda_bump) = Pubkey::find_program_address( &[b"Rentable_marketplace", &collection_unique_bump.to_be_bytes()], program_id);
+    // let container_seed: &[&[u8]] = &[b"Rentable_marketplace", &collection_unique_bump.to_be_bytes(), &[container_pda_bump]];
+
+    if *rent_container_pda_info.key != container_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
+
+    if avatar_data.use_authority != *payer_account_info.key || rent_container_data.renter != *payer_account_info.key{
+        Err(ProgramError::Custom(2))?
+    }
+
+    avatar_data.unlockable_date = current_timestamp + rent_container_data.duration as u32;
+    avatar_data.use_authority = rent_container_data.owner;
+    rent_container_data.renter = rent_container_data.owner;
+    rent_container_data.ending_date = current_timestamp as u64;
+    let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
+    if !temp_account_rent_data.state{
+        Err(ProgramError::Custom(3))?
+    }
+    let account_rent_data = AccountRentSpace{
+        state: false,
+        nft_owner: rent_container_data.owner,
+        mint_id: *mint_account_info.key,
+        container_bump: avatar_data.rent_bump,
+    };
+
+    account_rent_data.serialize(&mut &mut account_rent_space_info.data.borrow_mut()[..])?;
+    avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
+    rent_container_data.serialize(&mut &mut rent_container_pda_info.data.borrow_mut()[..])?;
+
+
+    
     Ok(())
 }
 
