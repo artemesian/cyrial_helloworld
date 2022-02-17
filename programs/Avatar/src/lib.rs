@@ -1284,7 +1284,7 @@ mod tests {
 
         msg!("{:?} : {:?}", expected_vals, received_vals);
         for i in 0..7{
-            assert!(expected_vals[i] as f32 + 0.02 * expected_vals[i] as f32 >received_vals[i] as f32 && (expected_vals[i] as f32 - 0.02 * expected_vals[i] as f32) < received_vals[i] as f32);
+            assert!(expected_vals[i] as f32 + 0.05 * expected_vals[i] as f32 >received_vals[i] as f32 && (expected_vals[i] as f32 - 0.05 * expected_vals[i] as f32) < received_vals[i] as f32);
         }
     }
 }
