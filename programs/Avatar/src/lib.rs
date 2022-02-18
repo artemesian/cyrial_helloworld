@@ -192,7 +192,9 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 
 
     let payer_account_info = next_account_info(account_info_iter)?;
+    let payer_dsol_token_account_info = next_account_info(account_info_iter)?;
     let vault = next_account_info(account_info_iter)?;
+    let vault_dsol_token_account_info = next_account_info(account_info_iter)?;
     let mint_account_info = next_account_info(account_info_iter)?;
     let rent_account_info = next_account_info(account_info_iter)?;
     let associated_account_info = next_account_info(account_info_iter)?;
@@ -204,27 +206,31 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let metadata_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     // let associated_token_program_info = next_account_info(account_info_iter)?;
-    let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
-    if vault.key != &temp_key {
-        Err(ProgramError::InvalidAccountData)?
-    }
+    // TODO: At the end we shall have to have a unique main vault and use his address through out our contracts
+    // let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
+    // if vault.key != &temp_key {
+    //     Err(ProgramError::InvalidAccountData)?
+    // }
 
-
+    msg!("Position 1");
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    msg!("Position {:?}", clock);
     // Getting timestamp
     let current_timestamp = clock.unix_timestamp as u32;
-
+    
     // let instruction = Instructions::unpackinst(instruction_data)?;
-
+    
     // let program_id = next_account_info(account_info_iter)?;
     let space: usize = 82;
+    msg!("Position before rent");
     let rent_lamports = Rent::get()?.minimum_balance(space);
-
-
-    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
-
-    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
-
+    
+    msg!("Position id {:?}", program_id);
+    // let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes()];
+    
+    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(&[b"sales_pda"], program_id);
+    
+    msg!("Position {:?} {:?}", sales_pda, sales_pda_info.key);
     if &sales_pda != sales_pda_info.key{
         Err(ProgramError::InvalidAccountData)?
     }
@@ -239,10 +245,17 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let unlockable_date: u32 = current_timestamp;
 
     // let rent = Rent::from_account_info(rent_account_info)?;
-    msg!("Hello_0");
+    msg!("Transfer DSOL token");
     invoke(
-        &system_instruction::transfer(&payer_account_info.key, &vault.key, price as u64),
-        &[payer_account_info.clone(), vault.clone()],
+        &spl_token::instruction::transfer(
+            &token_program_info.key,
+            &payer_dsol_token_account_info.key,
+            &vault_dsol_token_account_info.key,
+            &payer_account_info.key,
+            &[],
+            price
+        )?,
+        &[payer_dsol_token_account_info.clone(), vault_dsol_token_account_info.clone(), payer_account_info.clone()]
     )?;
     // msg!(
     //     "{:?} {:?} {:?} {:?} {:?}",
@@ -508,6 +521,7 @@ enum InstructionEnum{
     RentAvatar,
     CloseLeaseListing,
     EndRent,
+    CreateVaultDsolTokenAccount,
 }
 
 fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, rent_price: f32, earnings_percentage: f32, cummulative_5week_hands: u32, required_rating: u32) -> ProgramResult{
@@ -970,6 +984,7 @@ impl InstructionEnum{
             6 => {Ok(Self::RentAvatar)}
             7 => {Ok(Self::CloseLeaseListing)}
             8 => {Ok(Self::EndRent)}
+            9 => {Ok(Self::CreateVaultDsolTokenAccount)}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -986,9 +1001,9 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
         Err(ProgramError::InvalidAccountData)?
     }
 
-    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
+    // let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
 
-    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
+    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(&[b"sales_pda"], program_id);
 
     if &sales_pda != sales_pda_info.key{
         Err(ProgramError::InvalidAccountData)?
@@ -1008,7 +1023,6 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
         &[
             &[        
                 b"sales_pda",
-                &program_id.to_bytes() as &[u8],
                 &[_sales_pda_bump]
                 ]
                 ]
@@ -1024,6 +1038,42 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
     };
 
     sales_account_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
+
+    Ok(())
+}
+
+fn create_vault_dsol_token_account(_program_id: &Pubkey, accounts: &[AccountInfo] ) -> ProgramResult{
+
+    let account_info_iter = &mut accounts.iter();
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let vault_account_info = next_account_info(account_info_iter)?;
+    let vault_dsol_token_account_info = next_account_info(account_info_iter)?;
+    let dsol_mint_info = next_account_info(account_info_iter)?;
+    let system_account_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+    let rent_account_info = next_account_info(account_info_iter)?;
+    // TODO: At the end we shall have to have a unique main payer and use his address through out our contracts
+    // if !payer_account_info.is_signer || payer_account_info.key != &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
+    //     Err(ProgramError::InvalidAccountData)?
+    // }
+
+    invoke(
+        &create_associated_token_account(
+            payer_account_info.key, 
+            vault_account_info.key,
+            dsol_mint_info.key
+        ),
+        &[
+            payer_account_info.clone(),
+            vault_dsol_token_account_info.clone(),
+            vault_account_info.clone(),
+            dsol_mint_info.clone(),
+            system_account_info.clone(),
+            token_program_info.clone(),
+            rent_account_info.clone(),
+        ]
+    )?;
 
     Ok(())
 }
@@ -1214,6 +1264,7 @@ pub fn process_instructions(
             InstructionEnum::RentAvatar => {rent_avatar(program_id, accounts)},
             InstructionEnum::CloseLeaseListing => {close_lease_listing(program_id, accounts)},
             InstructionEnum::EndRent => {end_rent(program_id, accounts)},
+            InstructionEnum::CreateVaultDsolTokenAccount => {create_vault_dsol_token_account(program_id, accounts)},
         }
 }
 
