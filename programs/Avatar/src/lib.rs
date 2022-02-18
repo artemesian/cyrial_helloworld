@@ -200,7 +200,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 fn get_price(sales_account_data: &Sales) -> u64{
     let x = sales_account_data.counter as f32;
 
-    15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)).floor() as u64  * 10e9 as u64
+    15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)) as u64  * 10e9 as u64
 }
 
 fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Option<u8>) -> ProgramResult{
@@ -231,7 +231,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 
     msg!("Position 1");
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
-    msg!("Position {:?}", clock);
     // Getting timestamp
     let current_timestamp = clock.unix_timestamp as u32;
     
