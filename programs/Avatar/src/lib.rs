@@ -200,7 +200,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 fn get_price(sales_account_data: &Sales) -> u64{
     let x = sales_account_data.counter as f32;
 
-    15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)) as u64  * 10e9 as u64
+    15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)) as u64  * 10e8 as u64
 }
 
 fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Option<u8>) -> ProgramResult{
@@ -728,7 +728,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
 
     if rent_container_data.rent_price != 0.0 {
         invoke(
-            &system_instruction::transfer(payer_account_info.key, &rent_container_data.owner,(rent_container_data.rent_price * 10e9) as u64),
+            &system_instruction::transfer(payer_account_info.key, &rent_container_data.owner,(rent_container_data.rent_price * 10e8) as u64),
             &[payer_account_info.clone(), mint_owner_info.clone()]
         )?;
     }
@@ -1305,7 +1305,7 @@ mod tests {
             rent_max_listed :0,
             rent_max_ever :0,
         };
-        assert_eq!(get_price(&sales_account_data), 90*10e9 as u64);
+        assert_eq!(get_price(&sales_account_data), 90*10e8 as u64);
     }
 
     #[test]
