@@ -26,5 +26,5 @@ spl-token = "3.2.0"
 
 
 [lib]
-name = "cyrial_helloworld"
+name = "avatar"
 crate-type = ["cdylib","lib"]   
