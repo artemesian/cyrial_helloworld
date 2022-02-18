@@ -22,6 +22,15 @@ use metaplex_token_metadata::id;
 use std::str::FromStr;
 entrypoint!(process_instructions);
 
+
+pub mod governor_id {
+    solana_program::declare_id!("DdyiDbh71JnpYbxdA9i4ECcd573sTm8Uur2GCgcB3P5k");
+}
+
+pub mod vault_id {
+    solana_program::declare_id!("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z");
+}
+
 #[derive(BorshSerialize, BorshDeserialize, Copy, Clone)]
 pub struct Sales{
     pub vault_total: f32,
@@ -164,7 +173,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     
     let account_info_iter = &mut accounts.iter();
 
-
     let payer_account_info = next_account_info(account_info_iter)?;
     let vault = next_account_info(account_info_iter)?;
     let mint_account_info = next_account_info(account_info_iter)?;
@@ -178,7 +186,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let metadata_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     // let associated_token_program_info = next_account_info(account_info_iter)?;
-    let temp_key = Pubkey::from_str("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z").unwrap();
+    let temp_key = vault_id::id();
     if vault.key != &temp_key {
         Err(ProgramError::InvalidAccountData)?
     }
@@ -193,7 +201,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // let program_id = next_account_info(account_info_iter)?;
     let space: usize = 82;
     let rent_lamports = Rent::get()?.minimum_balance(space);
-
 
     let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
 
@@ -393,7 +400,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 
     )?;
     msg!("Hello7");
-
 
     let avatar_data_pda_seed: &[&[u8]; 3] = &[
         b"avatar_data_pda",
@@ -712,35 +718,32 @@ pub fn process_instructions(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
+
+        if program_id != &governor_id::id(){
+            Err(ProgramError::IncorrectProgramId)?
+        }
         let instruction = InstructionEnum::decode(instruction_data)?;
         match instruction {
-
             InstructionEnum::MintNft =>{
                 mint_nft(program_id, accounts, None)
             }
             InstructionEnum::UnlockMint => {
                 unlock_account(program_id, accounts)
             }   
-
             InstructionEnum::ClaimXp{xp_claims} =>{
                 claim_xp(program_id, accounts, xp_claims)
-
             }
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
-
             InstructionEnum::BurnNFTs{rarity} => {burn_nft(program_id, accounts, rarity)}
         }
 }
 
 // #[cfg(test)]
 // mod tests {
-//     // use std::str::FromStr;
 
-//     // use solana_program::pubkey::Pubkey;
 
 //     #[test]
 //     fn it_works() {
-//         // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
 //         assert_eq!(5 * 5, 5 * 5);
 //     }
 // }

@@ -20,14 +20,21 @@ use metaplex_token_metadata::{id, state::{Metadata}};
 entrypoint!(process_instructions);
 
 
+
+#[derive(BorshSerialize, BorshDeserialize)]
+enum TokenType{
+    Sol,
+    Dsol
+}
 enum InstructionEnum{
-    CreateCollection{rentable: bool},
+    CreateCollection{rentable: bool, token_type: TokenType},
     CreateLimitOrder{
         price: u32
     },
     CloseLimitOrder{current_bump: u64},
     FillLimitOrder{current_bump: u64},
 }
+
 
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -40,6 +47,7 @@ struct CollectionData{
     rent_min_listed: u32,
     rent_max_listed: u32,
     rent_max_ever: u32,
+    token_type: TokenType
 }
 
 
@@ -63,10 +71,10 @@ impl InstructionEnum{
     fn decode_instruction(data: &[u8]) -> Result<Self, ProgramError> {
        Ok(match data[0]{
             0 => {
-                Self::CreateCollection{rentable: if data[1] == 1 {true} else {false}}
+                Self::CreateCollection{rentable: if data[1] == 1 {true} else {false}, token_type: match data[2]{ 0 => {TokenType::Sol} 1=> {TokenType::Dsol} _ => Err(ProgramError::Custom(121))? }}
             }
             1 => {
-                let price = ((get_num_cnt(&data[0..3]) as f32  + (get_num_cnt(&data[3..6]) as f32) / 10000.0) * (10.0 as f32).powf(9.0) as f32) as u32; // maximum price it can be listed is = 65286.5280
+                let price = ((get_num_cnt(&data[0..3]) as f32  + (get_num_cnt(&data[3..6]) as f32) / 10000.0) * 10e9) as u32; // maximum price it can be listed is = 65286.5280
                 Self::CreateLimitOrder{price:price}
             }
             2 => {
@@ -85,7 +93,7 @@ impl InstructionEnum{
     }
 }
 
-fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bool) -> ProgramResult{
+fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bool, token_type: TokenType) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
 
 
@@ -106,7 +114,6 @@ fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bo
         &[payer_account_info.clone(), collection_pda_info.clone()],
         &[&[b"Gamestree_seed", &creator_account_info.key.to_bytes(), &[collection_pda_bump]]]
     )?;
-
     let collection_data = CollectionData{
         address: *creator_account_info.key,
         min_listed: 0,
@@ -116,7 +123,7 @@ fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bo
         rent_min_listed: 0,
         rent_max_listed: 0,
         rent_max_ever: 0,
-        
+        token_type: token_type
     };
 
     collection_data.serialize(&mut &mut collection_pda_info.data.borrow_mut()[..])?;
@@ -322,6 +329,8 @@ fn fill_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], current_bump:
     let container_associated_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let owner_account_info = next_account_info(account_info_iter)?;
+    let payer_dsol_token_account_info = next_account_info(account_info_iter)?;
+    let owner_dsol_token_account_info = next_account_info(account_info_iter)?;
 
     if !payer_account_info.is_signer{
         Err(ProgramError::InvalidAccountData)?
@@ -350,12 +359,28 @@ fn fill_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], current_bump:
     if *max_container_info.key != container_pda{
         Err(ProgramError::InvalidAccountData)?
     }
-
-    invoke(
-        &system_instruction::transfer(payer_account_info.key, &container_data.owner, container_data.price as u64),
-        &[payer_account_info.clone(), owner_account_info.clone()]
-    )?;
-
+    match collection_data.token_type {
+        TokenType::Sol => {invoke(
+            &system_instruction::transfer(payer_account_info.key, &container_data.owner, container_data.price as u64),
+            &[payer_account_info.clone(), owner_account_info.clone()]
+        )?;
+        }
+        TokenType::Dsol => {
+            msg!("Transfer DSOL token");
+            invoke(
+                &spl_token::instruction::transfer(
+                    &token_program_info.key,
+                    &payer_dsol_token_account_info.key,
+                    &owner_dsol_token_account_info.key,
+                    &payer_account_info.key,
+                    &[],
+                    (container_data.price as f32 /10.0) as u64
+                )?,
+                &[payer_dsol_token_account_info.clone(), owner_dsol_token_account_info.clone(), payer_account_info.clone()]
+            )?;
+        }
+    }
+  
     container_data = try_from_slice_unchecked(&max_container_info.data.borrow())?;
 
     container_data.serialize(&mut &mut container_account_info.data.borrow_mut()[..])?;
@@ -386,8 +411,8 @@ fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instructi
     let instruction  = InstructionEnum::decode_instruction(instruction_data)?;
  
     match instruction{
-        InstructionEnum::CreateCollection{rentable} => {
-           create_collection(program_id, accounts, rentable)?
+        InstructionEnum::CreateCollection{rentable, token_type} => {
+           create_collection(program_id, accounts, rentable, token_type)?
         }
         InstructionEnum::CreateLimitOrder{price} => {
             if price > 65000{
@@ -401,8 +426,6 @@ fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instructi
         InstructionEnum::FillLimitOrder{current_bump} => {
             fill_limit_order(program_id, accounts, current_bump)?
         }
-
-
         // _ => Err(ProgramError::InvalidInstructionData)?
     }
 
