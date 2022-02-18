@@ -22,7 +22,7 @@ use metaplex_token_metadata::id;
 use std::str::FromStr;
 entrypoint!(process_instructions);
 
-#[derive(BorshSerialize, BorshDeserialize)]
+#[derive(BorshSerialize, BorshDeserialize, Copy, Clone)]
 pub struct Sales{
     pub vault_total: f32,
     pub counter: u32,
@@ -323,7 +323,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         index_uri += (*i as u32) * (*i as u32);
     }
     msg!("Hello_C_0");
-    let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
 
     let (selected_uri, rarity) = select_uri(index_uri, selected_rarity);
 
