@@ -43,15 +43,15 @@ struct AvatarData{
      level: u8,
      xp: u32,
      rented_state: bool,
-     use_authority: Pubkey,
+     use_authority: [u8;32],
      rent_bump: u32,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct RentContainerData{
-    mint_address: Pubkey,
-    owner: Pubkey,
-    renter: Pubkey,
+    mint_address: [u8;32],
+    owner: [u8;32],
+    renter: [u8;32],
     state: bool,
     rent_price: f32,
     duration: u64,
@@ -65,8 +65,8 @@ struct RentContainerData{
 #[derive(BorshSerialize, BorshDeserialize)]
 struct AccountRentSpace{
     state: bool,
-    nft_owner: Pubkey,
-    mint_id: Pubkey,
+    nft_owner: [u8;32],
+    mint_id: [u8;32],
     container_bump: u32,
 }
 
@@ -482,7 +482,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         level: 0,
         xp: 0,
         rented_state: false,
-        use_authority: *payer_account_info.key,
+        use_authority: payer_account_info.key.to_bytes(),
         rent_bump: 0
         
     };
@@ -627,10 +627,10 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
 
     
     let new_container_data = RentContainerData{
-        mint_address: *mint_account_info.key,
-        owner: *payer_account_info.key,
+        mint_address: mint_account_info.key.to_bytes(),
+        owner: payer_account_info.key.to_bytes(),
         state: true,
-        renter: *payer_account_info.key,
+        renter: payer_account_info.key.to_bytes(),
         rent_price: rent_price,
         duration: duration,
         ending_date: current_timestamp as u64,
@@ -645,7 +645,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
 
     avatar_data.rented_state = true;
-    avatar_data.use_authority = *payer_account_info.key;
+    avatar_data.use_authority = payer_account_info.key.to_bytes();
     avatar_data.rent_bump = collection_unique_bump;
     // avatar_data.unlockable_date = current_timestamp + duration as u32;
     avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
@@ -728,14 +728,14 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
 
     if rent_container_data.rent_price != 0.0 {
         invoke(
-            &system_instruction::transfer(payer_account_info.key, &rent_container_data.owner,(rent_container_data.rent_price * 10e8) as u64),
+            &system_instruction::transfer(payer_account_info.key, &Pubkey::new_from_array(rent_container_data.owner),(rent_container_data.rent_price * 10e8) as u64),
             &[payer_account_info.clone(), mint_owner_info.clone()]
         )?;
     }
 
     avatar_data.unlockable_date = current_timestamp + rent_container_data.duration as u32;
-    avatar_data.use_authority = *payer_account_info.key;
-    rent_container_data.renter = *payer_account_info.key;
+    avatar_data.use_authority = payer_account_info.key.to_bytes();
+    rent_container_data.renter = payer_account_info.key.to_bytes();
     rent_container_data.ending_date = current_timestamp as u64 + rent_container_data.duration;
     let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
     if temp_account_rent_data.state{
@@ -744,7 +744,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let account_rent_data = AccountRentSpace{
         state: true,
         nft_owner: rent_container_data.owner,
-        mint_id: *mint_account_info.key,
+        mint_id: mint_account_info.key.to_bytes(),
         container_bump: avatar_data.rent_bump,
     };
 
@@ -815,7 +815,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Program
         Err(ProgramError::Custom(1))?
     }
 
-    if *payer_account_info.key != rent_container_data.owner || !payer_account_info.is_signer{
+    if payer_account_info.key.to_bytes() != rent_container_data.owner || !payer_account_info.is_signer{
         Err(ProgramError::Custom(2))?
     }
 
@@ -943,7 +943,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
 
     let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
 
-    if avatar_data.use_authority != *payer_account_info.key || rent_container_data.renter != *payer_account_info.key{
+    if avatar_data.use_authority != payer_account_info.key.to_bytes() || rent_container_data.renter != payer_account_info.key.to_bytes(){
         Err(ProgramError::Custom(2))?
     }
 
@@ -958,7 +958,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let account_rent_data = AccountRentSpace{
         state: false,
         nft_owner: rent_container_data.owner,
-        mint_id: *mint_account_info.key,
+        mint_id: mint_account_info.key.to_bytes(),
         container_bump: avatar_data.rent_bump,
     };
 
