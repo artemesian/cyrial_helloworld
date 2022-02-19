@@ -96,7 +96,6 @@ impl InstructionEnum{
 fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bool, token_type: TokenType) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
 
-
     let payer_account_info = next_account_info(account_info_iter)?; 
     let creator_account_info = next_account_info(account_info_iter)?; // Account_infos of a signed Creator
     let collection_pda_info = next_account_info(account_info_iter)?; // Account where collection data will be stored
@@ -130,7 +129,6 @@ fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bo
 
     Ok(())
 }
-
 
 fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u32) -> ProgramResult{
 
