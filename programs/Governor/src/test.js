@@ -1,0 +1,1 @@
+asserts(true, true);

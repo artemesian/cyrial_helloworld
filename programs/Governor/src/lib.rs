@@ -265,7 +265,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     msg!("Current timestamp: {:?}", current_timestamp);
     let locked_time = lock_time(sales_account_data.counter as f32);
     msg!("Locked time: {:?}", locked_time);
-    let unlockable_date: u32 = current_timestamp + locked_time;
+    let unlockable_date: u32 = current_timestamp + 0;
 
 
     // let rent = Rent::from_account_info(rent_account_info)?;
@@ -389,7 +389,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     }
     msg!("Hello_C_3");
     invoke_signed(
-        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Gamestree governor".to_string(), "Gtree".to_string(), selected_uri.to_string(), Some(creators), 500, true, true),
+        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "DSOL Governor".to_string(), "DSOLG".to_string(), selected_uri.to_string(), Some(creators), 500, true, true),
         &[
             metadata_pda_info.clone(),
             mint_account_info.clone(),
@@ -604,7 +604,6 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
 fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
 
-
     let mint_account_info = next_account_info(account_info_iter)?;
     let associated_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
@@ -766,9 +765,9 @@ pub fn process_instructions(
     instruction_data: &[u8],
 ) -> ProgramResult {
 
-        if program_id != &governor_id::id(){
-            Err(ProgramError::IncorrectProgramId)?
-        }
+        // if program_id != &governor_id::id(){
+        //     Err(ProgramError::IncorrectProgramId)?
+        // }
         let instruction = InstructionEnum::decode(instruction_data)?;
         match instruction {
             InstructionEnum::MintNft =>{
