@@ -266,6 +266,16 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     }
     // msg!("{:?}",&sales_pda_info.data);
     let mut sales_account_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+
+    if match sales_account_data.struct_id{
+        StructId::AvatarSales0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
+
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
@@ -601,6 +611,14 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     }
 
     let mut collection_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    if match collection_data.struct_id{
+        StructId::AvatarSales0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
 
     let avatar_data_pda_seed: &[&[u8]; 2] = &[
         b"avatar_data_pda",
@@ -634,6 +652,16 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     }
     else{
         let current_container_data: RentContainerData = try_from_slice_unchecked(&container_account_info.data.borrow())?;
+
+        if match current_container_data.struct_id{
+            StructId::RentContainerData0_0_1=> {false}
+            _ => {
+                    true
+            }
+        } {
+            Err(GlobalError::InvalidStructId)?
+        }
+
         if current_container_data.state == true{
             msg!("current Container doesn't seem to be Empty, Big Problem");
             Err(ProgramError::InvalidSeeds)?
@@ -659,6 +687,15 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
 
 
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+
+    if match avatar_data.struct_id{
+        StructId::AvatarData0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
 
     avatar_data.rented_state = true;
     avatar_data.use_authority = payer_account_info.key.to_bytes();
@@ -726,6 +763,14 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     }
 
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+    if match avatar_data.struct_id{
+        StructId::AvatarData0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
 
     
     let collection_unique_bump = avatar_data.rent_bump;
@@ -737,6 +782,14 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     }
 
     let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
+    if match rent_container_data.struct_id{
+        StructId::RentContainerData0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
 
     if rent_container_data.ending_date > current_timestamp as u64 || avatar_data.use_authority != rent_container_data.owner{
         Err(ProgramError::Custom(2))?
@@ -754,6 +807,16 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     rent_container_data.renter = payer_account_info.key.to_bytes();
     rent_container_data.ending_date = current_timestamp as u64 + rent_container_data.duration;
     let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
+
+    if match temp_account_rent_data.struct_id{
+        StructId::AccountRentSpace0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
+
     if temp_account_rent_data.state{
         Err(ProgramError::Custom(3))?
     }
@@ -990,6 +1053,14 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     }
 
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+    if match avatar_data.struct_id{
+        StructId::AvatarData0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
 
     
     let collection_unique_bump = avatar_data.rent_bump;
@@ -1001,6 +1072,14 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     }
 
     let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
+    if match rent_container_data.struct_id{
+        StructId::RentContainerData0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
 
     if avatar_data.use_authority != payer_account_info.key.to_bytes() || rent_container_data.renter != payer_account_info.key.to_bytes(){
         Err(ProgramError::Custom(2))?
@@ -1011,6 +1090,16 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     rent_container_data.renter = rent_container_data.owner;
     rent_container_data.ending_date = current_timestamp as u64;
     let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
+
+    if match temp_account_rent_data.struct_id{
+        StructId::AccountRentSpace0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
+
     if !temp_account_rent_data.state{
         Err(ProgramError::Custom(3))?
     }
@@ -1178,6 +1267,16 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         &mint_account_info.key.to_bytes(),
     ];
     let avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+
+    if match avatar_pda_account_data.struct_id{
+        StructId::AvatarData0_0_1=> {false}
+        _ => {
+                true
+        }
+    } {
+        Err(GlobalError::InvalidStructId)?
+    }
+
     let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
     if avatar_data_pda_info.key != &avatar_data_pda{
         Err(ProgramError::InvalidAccountData)?
@@ -1231,6 +1330,16 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) 
             &mint_account_info.key.to_bytes(),
         ];
         let mut avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+
+        if match avatar_pda_account_data.struct_id{
+            StructId::AvatarData0_0_1=> {false}
+            _ => {
+                    true
+            }
+        } {
+            Err(GlobalError::InvalidStructId)?
+        }
+
         let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
         if avatar_data_pda_info.key != &avatar_data_pda{
             Err(ProgramError::InvalidAccountData)?
@@ -1292,6 +1401,16 @@ fn burn_nft(program_id: &Pubkey, accounts: &[AccountInfo], rarity: u8)-> Program
             &curr_mint_account_info.key.to_bytes(),
         ];
         let curr_avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&curr_avatar_data_pda_info.data.borrow())?;
+
+        if match curr_avatar_pda_account_data.struct_id{
+            StructId::AvatarData0_0_1=> {false}
+            _ => {
+                    true
+            }
+        } {
+            Err(GlobalError::InvalidStructId)?
+        }
+
         let (curr_avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
         if curr_avatar_data_pda_info.key != &curr_avatar_data_pda{
             msg!("Error_Bn_1");

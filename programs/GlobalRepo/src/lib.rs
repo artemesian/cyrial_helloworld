@@ -32,7 +32,7 @@ pub enum StructId{
 
 
 pub mod governor{
-    solana_program::declare_id!("DdyiDbh71JnpYbxdA9i4ECcd573sTm8Uur2GCgcB3P5k");
+    solana_program::declare_id!("GWJQHiudaVnhBmvCkRmMPeWs2rffhG2fmkXVRJHM9t5s");
 }
 
 pub mod vault{
@@ -46,6 +46,18 @@ pub mod dao{
     solana_program::declare_id!("DrSryh4M2nYyRSqgDNMiASK73LSoZrN56oHWXaAcnmCt");
 }
 
+pub mod dsol{
+    solana_program::declare_id!("4zTDFeuFhdevrJ8rnoZum8m9dgoLqdMEFnPhgDhRCG16");
+}
+
+pub mod table{
+    solana_program::declare_id!("7ZAXECRFXUJHU2L5G5imivRL3A7svS3LP9bEA3pRR6tG");
+}
+
+pub mod marketplace{
+    solana_program::declare_id!("5hLihu5RjNSTPFFGP2nurV3xnJCeLj12WJXgphRDVMvE");
+}
+
 pub mod dsol_mint{
     use solana_program::pubkey::Pubkey;
     use spl_associated_token_account::{get_associated_token_address};
@@ -57,6 +69,8 @@ pub mod dsol_mint{
         get_associated_token_address(&vault::id(), &id())
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {

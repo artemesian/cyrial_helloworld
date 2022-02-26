@@ -15,3 +15,7 @@ arrayref = "0.3.6"
 num-derive = "0.3"
 num-traits = "0.2"
 num_enum = "0.5.4"
+
+[package.metadata.x]
+
+build-deploy = "cd ../Dsol && cargo-x build-deploy-address && cd ../Avatar && cargo-x build-deploy-address && cd ../Governor && cargo-x build-deploy-address && cd ../Table && cargo-x build-deploy-address && cd ../Dao && cargo-x build-deploy-address && cd ../Marketplace && cargo-x build-deploy-address"
