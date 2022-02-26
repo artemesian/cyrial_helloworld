@@ -26,16 +26,16 @@ use metaplex_token_metadata::id;
 entrypoint!(process_instructions);
 
 
-#[derive(BorshDeserialize, BorshSerialize)]
-struct RequestUnits {
-    /// Units to request
-    units: u32,
-    /// Additional fee to add
-    additional_fee: u32,
-}
+// #[derive(BorshDeserialize, BorshSerialize)]
+// struct RequestUnits {
+//     /// Units to request
+//     units: u32,
+//     /// Additional fee to add
+//     additional_fee: u32,
+// }
 
 #[derive(BorshSerialize, BorshDeserialize)]
-struct Sales{
+struct TableSales{
      vault_total: f32,
      counter: u32,
 }
@@ -199,7 +199,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 }
 
 
-fn get_price(sales_account_data: &Sales) -> u64{
+fn get_price(sales_account_data: &TableSales) -> u64{
     let x = sales_account_data.counter as f32;
     15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)) as u64  * 10e8 as u64
 }
@@ -243,17 +243,17 @@ fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u8
         Err(ProgramError::InsufficientFunds)?
     }
 
-    invoke(
-        &Instruction::new_with_borsh(
-            compute_budget::id(),
-            &RequestUnits{
-                units: 400000,
-                additional_fee: (0.01e9) as u32
-            },
-            vec![],
-        ),
-        &[]
-    )?;
+    // invoke(
+    //     &Instruction::new_with_borsh(
+    //         compute_budget::id(),
+    //         &RequestUnits{
+    //             units: 400000,
+    //             additional_fee: (0.01e9) as u32
+    //         },
+    //         vec![],
+    //     ),
+    //     &[]
+    // )?;
     msg!("Position 2");
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     // Getting timestamp
@@ -271,7 +271,7 @@ fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u8
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&table_sales_pda_info.data);
-    let mut sales_account_data: Sales = try_from_slice_unchecked(&table_sales_pda_info.data.borrow())?;
+    let mut sales_account_data: TableSales = try_from_slice_unchecked(&table_sales_pda_info.data.borrow())?;
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
@@ -689,7 +689,7 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
     )?;
 
 
-    let table_sales_account_data = Sales{
+    let table_sales_account_data = TableSales{
         vault_total : 1.0,
         counter :  1
     };

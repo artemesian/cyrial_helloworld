@@ -7,3 +7,11 @@ edition = "2021"
 
 [dependencies]
 solana-program = "1.9.6"
+borsh = "0.9.1"
+borsh-derive = "0.9.1"
+spl-associated-token-account = { version = "1.0.3", features = ["no-entrypoint"]}
+thiserror = "1.0"
+arrayref = "0.3.6"
+num-derive = "0.3"
+num-traits = "0.2"
+num_enum = "0.5.4"
