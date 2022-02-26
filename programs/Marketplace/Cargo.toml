@@ -14,3 +14,12 @@ spl-token = { version = "3.2.0", features = ["no-entrypoint"]}
 spl-associated-token-account = { version = "1.0.3", features = ["no-entrypoint"]}
 metaplex-token-metadata = { version = "0.0.1", features = ["no-entrypoint"]}
 # Avatar = {version="0.1.0", path='..\\Avatar'}
+
+
+[lib]
+name = "marketplace"
+crate-type = ["cdylib","lib"]  
+
+[package.metadata.x]
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Marketplace/target/deploy/keypair.json /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Marketplace/target/deploy/Marketplace.so"
+build-deploy = "cargo build-bpf && solana program deploy /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Marketplace/target/deploy/Marketplace.so"

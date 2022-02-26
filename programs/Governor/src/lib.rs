@@ -7,15 +7,15 @@ use solana_program::{
     msg,
     hash,
     borsh::{try_from_slice_unchecked},
-    program::{invoke, invoke_signed}, 
+    program::{invoke, invoke_signed},
     pubkey::Pubkey,
     system_instruction,
     sysvar::{rent::Rent, Sysvar},
-    program_error::ProgramError,
+    program_error::ProgramError, program_pack::Pack,
 };
-use spl_associated_token_account::create_associated_token_account;
-use spl_token::instruction::*;
-use metaplex_token_metadata::{instruction, state::{Creator}};
+use spl_associated_token_account::{create_associated_token_account, get_associated_token_address};
+use spl_token::{instruction::*,state::Account};
+use metaplex_token_metadata::{instruction, state::{Creator, Metadata}};
 use metaplex_token_metadata::id;
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
@@ -32,7 +32,7 @@ pub mod vault_id {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Copy, Clone)]
-pub struct Sales{
+pub struct GovernorSales{
     pub vault_total: f32,
     pub counter: u32,
 }
@@ -78,48 +78,48 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
     };
     //Champion
     if new_ind == 689{
-        let avatars = ["https://arweave.net/9PpWTTi7HtqsaqVA3Xj3HSSOgZmSd6Xp8LtIIJGpXZQ",
+        let governors = ["https://arweave.net/9PpWTTi7HtqsaqVA3Xj3HSSOgZmSd6Xp8LtIIJGpXZQ",
         "https://arweave.net/HrwBGdAvm7JNcwtELnFcKpASzOxpM6DiabXNhwzhIvo",
         "https://arweave.net/jMS9hTVfVDzZTLmjK4b9wMlU5IvaKkaIq4rkWd8v6tI",
         "https://arweave.net/hW1v0aRSgyiLSf3T-g-KrVy149vnLxRogzW1OKhJ9M4"];
-        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 7)
+        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 7)
     }
     //Proffesional
     else if new_ind >= 432 && new_ind <442 {
-        let avatars = ["https://arweave.net/d7SkjEvOnrnjd70VJolcYH9wPHvKlCnHbK-cELj80ns",
+        let governors = ["https://arweave.net/d7SkjEvOnrnjd70VJolcYH9wPHvKlCnHbK-cELj80ns",
         "https://arweave.net/P0KnKMBd1HDEiuusImQyCZvXxMPIeTwnxAhpUKak-dU",
         "https://arweave.net/L4RT2S0lMfpCb-VSgcxgQf2_d_yQtLcd7LPG69ktZ7Y",
         "https://arweave.net/XbcADvU4mVYA16uQ9ntgT5mqeBReReEGB0gBlfQcGt0",
         "https://arweave.net/o_RA3BIqkCfVJBDk2BoUinTVKzn7kp1sd66HhmNDxus",
         "https://arweave.net/dfqYLcfA-IfAm5kwxe9r4FY7t4GjI3tQ5qp71PF5NUI"];
 
-        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 6)
+        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 6)
     }
     //Rookie
     else if new_ind >= 600 && new_ind < 634{
-        let avatars =  ["https://arweave.net/--IWT_ar1dmtaD59TmuEtxpzo78dA1CtB0Rw4NQImgY",
+        let governors =  ["https://arweave.net/--IWT_ar1dmtaD59TmuEtxpzo78dA1CtB0Rw4NQImgY",
         "https://arweave.net/OgLLqseURKEhpnG2pemY8-GABb02Sv3-bd-Z-zSCU6E",
         "https://arweave.net/1Cg372-PuRnC3NpQPkU_S2mwQ1cA5c0INw6iGjh6qm8",
         "https://arweave.net/QuLsWewEBafc1vgj81CCqXM9RHWThNLpdYlF69f7n4s",
         "https://arweave.net/JXB0E8Y2qibfWnBH2a46Nr6tWDjoUXQw94lp8nIF8Go",
         "https://arweave.net/BG_y-_b9Wf9cWqPbiqq8a29HTyzF7ZkzQoU2WoZt2uE"];
 
-        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 5)
+        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 5)
     }
     //Amature
     else if new_ind >= 545 && new_ind < 600{
-        let avatars =["https://arweave.net/aHxrUZhvlBlwKl5fS0R7xeVb7cSiUO2DrjtkymGZmYA",
+        let governors =["https://arweave.net/aHxrUZhvlBlwKl5fS0R7xeVb7cSiUO2DrjtkymGZmYA",
         "https://arweave.net/T61vjM7QnPX_1xF2pYeqXefzAeFN36CoJVWhAYpqOqQ",
         "https://arweave.net/e37eKriHf96MTgTkQQf-MoqPqetJzgLxstLQqZKoDxE",
         "https://arweave.net/plH8N9Y-hlR0wZBreKvoGrWebOfNrsfGEqLf2N8QSsE",
         "https://arweave.net/O3v3x7bDzmmoegsOJD-0PaXZZp5nYaDErjQ16LMOrm8",
         "https://arweave.net/EY8tIfzsjz2GVKgojuYw5aD6993TsETZN_2ybkZVdak"];
 
-        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 4)
+        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 4)
     }
     //Local
     else if new_ind < 100{
-        let avatars =  ["https://arweave.net/s6BsAVvf6ghtUKt1H8eoirE-yZBPvBjqN3Wyguyc1e8",
+        let governors =  ["https://arweave.net/s6BsAVvf6ghtUKt1H8eoirE-yZBPvBjqN3Wyguyc1e8",
         "https://arweave.net/b7qTQMMzzBPmCKFPYb930axSH-EmZ-nGg3AROB-QZQA",
         "https://arweave.net/PF361VjEBHx81b9CTxZfnCO2XNJ3L3caGIQj9DyuDrg",
         "https://arweave.net/jUt_Epc5vFBsDfTHMIcuVybofVN8mbS9CpcmZD3fjHs",
@@ -127,11 +127,11 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
         "https://arweave.net/HVzFwe4ZCEg_hEM4bkLsRC7FsLrwFfo_9PBb8Sy9J4Y",
         "https://arweave.net/lbD_lTQjomJkvpTXZ6hiGWNkpsN0d2GUbst6zpmEdYs",
         "https://arweave.net/c9I8MC-4T5zzGsLy5LJ-Hj3ocZ05KaafqMp5annaONM"];
-        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 3)
+        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 3)
     }
     //Casual
     else if new_ind > 800{
-        let avatars = ["https://arweave.net/IxukmJfBlOuSepj2hdaqyTLmaTnDZXQnqJTs97qr-lA",
+        let governors = ["https://arweave.net/IxukmJfBlOuSepj2hdaqyTLmaTnDZXQnqJTs97qr-lA",
         "https://arweave.net/vlb-F7-S-qdYmvXVpK4GExTp_obewqdA_yFUeSQ0I14",
         "https://arweave.net/UN8cD_YeTYBj7qvxw6ehsTlen-LotD-tKmFLG54LGrU",
         "https://arweave.net/jVYynpUgTQMqZJdYz2KRoJweDu_3kh-swyVmCbNoGVw",
@@ -143,11 +143,11 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
         "https://arweave.net/YVBheCFbLPF3cksqZfYCWc0rReZDVLUS782ViWNk-tc",
         "https://arweave.net/GvirKFNoGQ1PhCzkNyG5BDINVlnaZ9Nj7T_PPf6FbR8"];
 
-        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 2)
+        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 2)
     }
     //NewB
     else {
-        let avatars = ["https://arweave.net/x_6w07Fdw-AD48dS4BRbXyQQtWKm9nzQS10zqBeLGV8",
+        let governors = ["https://arweave.net/x_6w07Fdw-AD48dS4BRbXyQQtWKm9nzQS10zqBeLGV8",
         "https://arweave.net/z7IuHYAz1vmY6aN3e9aDpYK3QP31muhP_C5L7-4o-4c",
         "https://arweave.net/uV_No3g8qVOoTEKCoIPUvdQRvZjapZ7ryC7PKkDtoSQ",
         "https://arweave.net/OD9qv9iHThs9qU_S7HIrWo7vxjMxOl6OkVbiq2CWq0o",
@@ -157,13 +157,13 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
         "https://arweave.net/EFa2XB5NSWedSEdcVu_UMO6vEZP5mEikBqfJoRHdI0I",
         "https://arweave.net/KRNDxr6O8YQremLzPLeut7Cv5sLNozov0Qa5BgZuTdM",
         "https://arweave.net/c2cmZycexv1xAfyMIn0j1uu6CMmnEQ0KSgoIZphQBOw"];
-        (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 1)
+        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 1)
     }
 
 }
 
 
-fn get_price(sales_account_data:Sales) -> u64{
+fn get_price(sales_account_data:GovernorSales) -> u64{
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
     (unitary  * (i32::pow(10,9) as f32)) as u64
@@ -181,16 +181,62 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let token_program_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
-    let avatar_data_pda_info = next_account_info(account_info_iter)?;
+    let governor_data_pda_info = next_account_info(account_info_iter)?;
     let sales_pda_info = next_account_info(account_info_iter)?;
     let metadata_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
+    let avatar_mint_info = next_account_info(account_info_iter)?;
+    let creator_account_info = next_account_info(account_info_iter)?;
+    let avatar_metadata_account_info = next_account_info(account_info_iter)?;
+    let avatar_associated_account_info = next_account_info(account_info_iter)?;
+
+    //TODO: add a check for the creator_account_info
+
+    
     // let associated_token_program_info = next_account_info(account_info_iter)?;
     let temp_key = vault_id::id();
     if vault.key != &temp_key {
         Err(ProgramError::InvalidAccountData)?
     }
 
+
+    let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &avatar_mint_info.key.to_bytes()], &id());
+
+    if *avatar_metadata_account_info.key != metadata_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let metadata = Metadata::from_account_info(avatar_metadata_account_info)?;
+
+    match metadata.data.creators{
+        Some(creators) =>{
+            for creator in creators.iter(){
+                if &creator.address == creator_account_info.key{
+                    if creator.verified{
+                        break;
+                    }
+                    else{
+                        msg!("NFT, Not signed by Creator");
+                        Err(ProgramError::InvalidAccountData)?
+                    }
+                }
+            }
+            msg!("NFT, Wrong Creator in Account Sent");
+            Err(ProgramError::InvalidAccountData)?
+        }
+        None => {msg!("Cannot Certify Authenticity of this NFT"); Err(ProgramError::InvalidAccountData)?}
+    }
+
+    let associated_mint_account = get_associated_token_address(payer_account_info.key, mint_account_info.key);
+    if associated_mint_account != *avatar_associated_account_info.key{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let associated_account_info_data = Account::unpack(&avatar_associated_account_info.data.borrow())?;
+
+    if associated_account_info_data.amount != 1{
+        Err(ProgramError::Custom(1))?
+    }
 
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     // Getting timestamp
@@ -210,7 +256,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&sales_pda_info.data);
-    let mut sales_account_data: Sales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    let mut sales_account_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
@@ -220,6 +266,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let locked_time = lock_time(sales_account_data.counter as f32);
     msg!("Locked time: {:?}", locked_time);
     let unlockable_date: u32 = current_timestamp + 0;
+
 
     // let rent = Rent::from_account_info(rent_account_info)?;
     msg!("Hello_0");
@@ -401,36 +448,36 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     )?;
     msg!("Hello7");
 
-    let avatar_data_pda_seed: &[&[u8]; 3] = &[
-        b"avatar_data_pda",
+    let governor_data_pda_seed: &[&[u8]; 3] = &[
+        b"governor_data_pda",
         &mint_account_info.key.to_bytes(),
         &associated_account_info.key.to_bytes()
     ];
-    let (avatar_data_pda, avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id); 
-    if avatar_data_pda_info.key != &avatar_data_pda{
+    let (governor_data_pda, governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id); 
+    if governor_data_pda_info.key != &governor_data_pda{
         Err(ProgramError::InvalidAccountData)?
     }
     msg!("Hello8");
     invoke_signed(
         &system_instruction::create_account(
             &payer_account_info.key,
-            &avatar_data_pda_info.key,
+            &governor_data_pda_info.key,
             Rent::get()?.minimum_balance(200),
             200,
             &program_id,
         ),
-        &[payer_account_info.clone(), avatar_data_pda_info.clone()],
+        &[payer_account_info.clone(), governor_data_pda_info.clone()],
         &[
             &[        
-                b"avatar_data_pda",
+                b"governor_data_pda",
                 &mint_account_info.key.to_bytes(),
                 &associated_account_info.key.to_bytes(),
-                &[avatar_data_pda_bump]
+                &[governor_data_pda_bump]
                 ]
                 ]
     )?;
     msg!("Hello9");
-    let avatar_pda_account_data = GovernorData{
+    let governor_pda_account_data = GovernorData{
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
         numeration: sales_account_data.counter,
@@ -438,7 +485,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         level: 0,
         xp: 0,
     };
-    avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
+    governor_pda_account_data.serialize(&mut &mut governor_data_pda_info.data.borrow_mut()[..])?;
     msg!("Hello_a");
 
     // invoke_signed(
@@ -544,7 +591,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
     )?;
 
 
-    let sales_account_data = Sales{
+    let sales_account_data = GovernorSales{
         vault_total : 1.0,
         counter :  1
     };
@@ -561,7 +608,7 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let associated_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
-    let avatar_data_pda_info = next_account_info(account_info_iter)?;
+    let governor_data_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
 
     msg!("Hello_a");
@@ -571,14 +618,14 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         Err(ProgramError::InvalidAccountData)?
     }
 
-    let avatar_data_pda_seed: &[&[u8]; 3] = &[
-        b"avatar_data_pda",
+    let governor_data_pda_seed: &[&[u8]; 3] = &[
+        b"governor_data_pda",
         &mint_account_info.key.to_bytes(),
         &associated_account_info.key.to_bytes()
     ];
-    let avatar_pda_account_data: GovernorData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
-    let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
-    if avatar_data_pda_info.key != &avatar_data_pda{
+    let governor_pda_account_data: GovernorData = try_from_slice_unchecked(&governor_data_pda_info.data.borrow())?;
+    let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id);
+    if governor_data_pda_info.key != &governor_data_pda{
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -586,7 +633,7 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     // Getting timestamp
     let current_timestamp = clock.unix_timestamp as u32;
     msg!("Hello_b");
-    if current_timestamp > avatar_pda_account_data.unlockable_date{
+    if current_timestamp > governor_pda_account_data.unlockable_date{
         invoke_signed(
             &thaw_account(
                 &token_program_info.key,
@@ -605,7 +652,7 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         )?;
     }
     else {
-        msg!("This Account's Unlock time hasn't yet reached. It will be unlocked on {:?}. Chech to see you sent the correct account", avatar_pda_account_data.unlockable_date);
+        msg!("This Account's Unlock time hasn't yet reached. It will be unlocked on {:?}. Chech to see you sent the correct account", governor_pda_account_data.unlockable_date);
         return Err(ProgramError::InvalidAccountData );
     }
     Ok(())
@@ -624,22 +671,22 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) 
 
         let mint_account_info = next_account_info(account_info_iter)?;
         let associated_account_info = next_account_info(account_info_iter)?;
-        let avatar_data_pda_info = next_account_info(account_info_iter)?;
+        let governor_data_pda_info = next_account_info(account_info_iter)?;
 
-        let avatar_data_pda_seed: &[&[u8]; 3] = &[
-            b"avatar_data_pda",
+        let governor_data_pda_seed: &[&[u8]; 3] = &[
+            b"governor_data_pda",
             &mint_account_info.key.to_bytes(),
             &associated_account_info.key.to_bytes()
         ];
-        let mut avatar_pda_account_data: GovernorData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
-        let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
-        if avatar_data_pda_info.key != &avatar_data_pda{
+        let mut governor_pda_account_data: GovernorData = try_from_slice_unchecked(&governor_data_pda_info.data.borrow())?;
+        let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id);
+        if governor_data_pda_info.key != &governor_data_pda{
             Err(ProgramError::InvalidAccountData)?
         }
 
-        avatar_pda_account_data.xp += to_increase_by as u32;
-        avatar_pda_account_data.level = (0.01 * (avatar_pda_account_data.xp as f32).powf(1.0/3.0)) as u8;
-        avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
+        governor_pda_account_data.xp += to_increase_by as u32;
+        governor_pda_account_data.level = (0.01 * (governor_pda_account_data.xp as f32).powf(1.0/3.0)) as u8;
+        governor_pda_account_data.serialize(&mut &mut governor_data_pda_info.data.borrow_mut()[..])?;
     }
     Ok(())
 }
@@ -685,21 +732,21 @@ fn burn_nft(program_id: &Pubkey, accounts: &[AccountInfo], rarity: u8)-> Program
 
         let curr_associated_account_info = next_account_info(account_info_iter)?;
         let curr_mint_account_info = next_account_info(account_info_iter)?;
-        let curr_avatar_data_pda_info = next_account_info(account_info_iter)?;
+        let curr_governor_data_pda_info = next_account_info(account_info_iter)?;
 
 
-        let avatar_data_pda_seed: &[&[u8]; 3] = &[
-            b"avatar_data_pda",
+        let governor_data_pda_seed: &[&[u8]; 3] = &[
+            b"governor_data_pda",
             &curr_mint_account_info.key.to_bytes(),
             &curr_associated_account_info.key.to_bytes()
         ];
-        let curr_avatar_pda_account_data: GovernorData = try_from_slice_unchecked(&curr_avatar_data_pda_info.data.borrow())?;
-        let (curr_avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
-        if curr_avatar_data_pda_info.key != &curr_avatar_data_pda{
+        let curr_governor_pda_account_data: GovernorData = try_from_slice_unchecked(&curr_governor_data_pda_info.data.borrow())?;
+        let (curr_governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id);
+        if curr_governor_data_pda_info.key != &curr_governor_data_pda{
             msg!("Error_Bn_1");
             Err(ProgramError::InvalidAccountData)?
         }
-        if curr_avatar_pda_account_data.rarity != rarity{
+        if curr_governor_pda_account_data.rarity != rarity{
             msg!("Error_Bn_2");
             Err(ProgramError::InvalidAccountData)?
         }

@@ -17,6 +17,8 @@ solana-program = "1.9.6"
 spl-token = { version = "3.2.0", features = ["no-entrypoint"]}
 spl-associated-token-account = { version = "1.0.3", features = ["no-entrypoint"]}
 metaplex-token-metadata = { version = "0.0.1", features = ["no-entrypoint"]}
+global_repo = { path = "../GlobalRepo" }
+
 
 [dev-dependencies]
 solana-program-test = "1.9.6"
@@ -28,3 +30,8 @@ spl-token = "3.2.0"
 [lib]
 name = "avatar"
 crate-type = ["cdylib","lib"]   
+
+[package.metadata.x]
+
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Avatar/target/deploy/keypair.json /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Avatar/target/deploy/Avatar.so"
+build-deploy = "cargo build-bpf && solana program deploy /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Avatar/target/deploy/avatar.so"

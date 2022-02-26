@@ -20,15 +20,16 @@ use spl_token::{instruction::*,
 use metaplex_token_metadata::{instruction, state::{Creator}};
 use metaplex_token_metadata::id;
 
+extern crate global_repo;
 // use solana_sdk::{borsh::try_from_slice_unchecked};
 use std::str::FromStr;
 entrypoint!(process_instructions);
 
 #[derive(BorshSerialize, BorshDeserialize)]
-struct Sales{
+struct AvatarSales{
+     struct_id: u32,
      vault_total: f32,
      counter: u32,
-
      rent_min_listed: u32,
      rent_max_listed: u32,
      rent_max_ever: u32,
@@ -36,6 +37,7 @@ struct Sales{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct AvatarData{
+     struct_id: u32,
      date_created: u32,
      unlockable_date: u32,
      numeration: u32,
@@ -43,15 +45,16 @@ struct AvatarData{
      level: u8,
      xp: u32,
      rented_state: bool,
-     use_authority: Pubkey,
+     use_authority: [u8;32],
      rent_bump: u32,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct RentContainerData{
-    mint_address: Pubkey,
-    owner: Pubkey,
-    renter: Pubkey,
+    struct_id: u32,
+    mint_address: [u8;32],
+    owner: [u8;32],
+    renter: [u8;32],
     state: bool,
     rent_price: f32,
     duration: u64,
@@ -64,9 +67,10 @@ struct RentContainerData{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct AccountRentSpace{
+    struct_id: u32,
     state: bool,
-    nft_owner: Pubkey,
-    mint_id: Pubkey,
+    nft_owner: [u8;32],
+    mint_id: [u8;32],
     container_bump: u32,
 }
 
@@ -197,7 +201,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 }
 
 
-fn get_price(sales_account_data: &Sales) -> u64{
+fn get_price(sales_account_data: &AvatarSales) -> u64{
     let x = sales_account_data.counter as f32;
 
     15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)) as u64  * 10e8 as u64
@@ -251,7 +255,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&sales_pda_info.data);
-    let mut sales_account_data: Sales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    let mut sales_account_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
@@ -475,6 +479,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     )?;
     msg!("Hello9");
     let avatar_pda_account_data = AvatarData{
+        struct_id: 1,
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
         numeration: sales_account_data.counter,
@@ -482,7 +487,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         level: 0,
         xp: 0,
         rented_state: false,
-        use_authority: *payer_account_info.key,
+        use_authority: payer_account_info.key.to_bytes(),
         rent_bump: 0
         
     };
@@ -585,7 +590,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
         Err(ProgramError::InvalidAccountData)?
     }
 
-    let mut collection_data: Sales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    let mut collection_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
 
     let avatar_data_pda_seed: &[&[u8]; 2] = &[
         b"avatar_data_pda",
@@ -627,10 +632,11 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
 
     
     let new_container_data = RentContainerData{
-        mint_address: *mint_account_info.key,
-        owner: *payer_account_info.key,
+        struct_id: 2,
+        mint_address: mint_account_info.key.to_bytes(),
+        owner: payer_account_info.key.to_bytes(),
         state: true,
-        renter: *payer_account_info.key,
+        renter: payer_account_info.key.to_bytes(),
         rent_price: rent_price,
         duration: duration,
         ending_date: current_timestamp as u64,
@@ -645,7 +651,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
 
     avatar_data.rented_state = true;
-    avatar_data.use_authority = *payer_account_info.key;
+    avatar_data.use_authority = payer_account_info.key.to_bytes();
     avatar_data.rent_bump = collection_unique_bump;
     // avatar_data.unlockable_date = current_timestamp + duration as u32;
     avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
@@ -728,23 +734,24 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
 
     if rent_container_data.rent_price != 0.0 {
         invoke(
-            &system_instruction::transfer(payer_account_info.key, &rent_container_data.owner,(rent_container_data.rent_price * 10e8) as u64),
+            &system_instruction::transfer(payer_account_info.key, &Pubkey::new_from_array(rent_container_data.owner),(rent_container_data.rent_price * 10e8) as u64),
             &[payer_account_info.clone(), mint_owner_info.clone()]
         )?;
     }
 
     avatar_data.unlockable_date = current_timestamp + rent_container_data.duration as u32;
-    avatar_data.use_authority = *payer_account_info.key;
-    rent_container_data.renter = *payer_account_info.key;
+    avatar_data.use_authority = payer_account_info.key.to_bytes();
+    rent_container_data.renter = payer_account_info.key.to_bytes();
     rent_container_data.ending_date = current_timestamp as u64 + rent_container_data.duration;
     let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
     if temp_account_rent_data.state{
         Err(ProgramError::Custom(3))?
     }
     let account_rent_data = AccountRentSpace{
+        struct_id: 3,
         state: true,
         nft_owner: rent_container_data.owner,
-        mint_id: *mint_account_info.key,
+        mint_id: mint_account_info.key.to_bytes(),
         container_bump: avatar_data.rent_bump,
     };
 
@@ -815,7 +822,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Program
         Err(ProgramError::Custom(1))?
     }
 
-    if *payer_account_info.key != rent_container_data.owner || !payer_account_info.is_signer{
+    if payer_account_info.key.to_bytes() != rent_container_data.owner || !payer_account_info.is_signer{
         Err(ProgramError::Custom(2))?
     }
 
@@ -857,7 +864,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Program
 
     avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
 
-    let mut sales_account_data: Sales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    let mut sales_account_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
 
     let max_bump = sales_account_data.rent_max_listed;
     let (container_pda, _container_pda_bump) = Pubkey::find_program_address( &[b"Rentable_marketplace", &max_bump.to_be_bytes()], program_id);
@@ -943,7 +950,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
 
     let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
 
-    if avatar_data.use_authority != *payer_account_info.key || rent_container_data.renter != *payer_account_info.key{
+    if avatar_data.use_authority != payer_account_info.key.to_bytes() || rent_container_data.renter != payer_account_info.key.to_bytes(){
         Err(ProgramError::Custom(2))?
     }
 
@@ -956,9 +963,10 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
         Err(ProgramError::Custom(3))?
     }
     let account_rent_data = AccountRentSpace{
+        struct_id: 3,
         state: false,
         nft_owner: rent_container_data.owner,
-        mint_id: *mint_account_info.key,
+        mint_id: mint_account_info.key.to_bytes(),
         container_bump: avatar_data.rent_bump,
     };
 
@@ -1045,7 +1053,8 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
     )?;
 
 
-    let sales_account_data = Sales{
+    let sales_account_data = AvatarSales{
+        struct_id: 0,
         vault_total : 1.0,
         counter :  1,
         rent_min_listed: 0,
@@ -1290,7 +1299,7 @@ mod tests {
 
     // use solana_program::pubkey::Pubkey;
 
-    use crate::{Sales, get_price, get_num_cnt, get_rand_num};
+    use crate::{AvatarSales, get_price, get_num_cnt, get_rand_num};
     use solana_program::{pubkey::Pubkey, msg};
     use std::str::FromStr;
 
@@ -1298,7 +1307,8 @@ mod tests {
     fn testing_get_price() {
         // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
 
-        let sales_account_data = Sales{
+        let sales_account_data = AvatarSales{
+            struct_id: 0,
             vault_total :0.0,
             counter :0,
             rent_min_listed: 0,

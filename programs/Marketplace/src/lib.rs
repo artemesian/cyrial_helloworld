@@ -39,7 +39,7 @@ enum InstructionEnum{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct CollectionData{
-    address: Pubkey,
+    address: [u8;32],
     min_listed: u32,
     max_listed: u32,
     max_ever: u32,
@@ -55,8 +55,8 @@ struct CollectionData{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct ContainerData{
-    collection_address: Pubkey,
-    mint_address: Pubkey,
+    collection_address: [u8;32],
+    mint_address: [u8;32],
     price: u32,
     owner: Pubkey,
     state: bool,
@@ -96,7 +96,6 @@ impl InstructionEnum{
 fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bool, token_type: TokenType) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
 
-
     let payer_account_info = next_account_info(account_info_iter)?; 
     let creator_account_info = next_account_info(account_info_iter)?; // Account_infos of a signed Creator
     let collection_pda_info = next_account_info(account_info_iter)?; // Account where collection data will be stored
@@ -115,7 +114,7 @@ fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bo
         &[&[b"Gamestree_seed", &creator_account_info.key.to_bytes(), &[collection_pda_bump]]]
     )?;
     let collection_data = CollectionData{
-        address: *creator_account_info.key,
+        address: creator_account_info.key.to_bytes(),
         min_listed: 0,
         max_listed: 0,
         max_ever: 0,
@@ -130,7 +129,6 @@ fn create_collection(program_id: &Pubkey, accounts: &[AccountInfo], rentable: bo
 
     Ok(())
 }
-
 
 fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u32) -> ProgramResult{
 
@@ -176,8 +174,8 @@ fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u32)
         }
     }
     let new_container_data = ContainerData{
-        collection_address: *creator_account_info.key,
-        mint_address: *mint_account_info.key,
+        collection_address: creator_account_info.key.to_bytes(),
+        mint_address: mint_account_info.key.to_bytes(),
         price: price,
         owner: *payer_account_info.key,
         state: true
