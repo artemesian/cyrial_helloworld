@@ -38,7 +38,7 @@ pub struct Sales{
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
-pub struct AvatarData{
+pub struct GovernorData{
     pub date_created: u32,
     pub unlockable_date: u32,
     pub numeration: u32,
@@ -219,7 +219,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     msg!("Current timestamp: {:?}", current_timestamp);
     let locked_time = lock_time(sales_account_data.counter as f32);
     msg!("Locked time: {:?}", locked_time);
-    let unlockable_date: u32 = current_timestamp + locked_time;
+    let unlockable_date: u32 = current_timestamp + 0;
 
     // let rent = Rent::from_account_info(rent_account_info)?;
     msg!("Hello_0");
@@ -342,7 +342,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     }
     msg!("Hello_C_3");
     invoke_signed(
-        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "Gamestree Avatar".to_string(), "Gtree".to_string(), selected_uri.to_string(), Some(creators), 500, true, true),
+        &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "DSOL Governor".to_string(), "DSOLG".to_string(), selected_uri.to_string(), Some(creators), 500, true, true),
         &[
             metadata_pda_info.clone(),
             mint_account_info.clone(),
@@ -430,7 +430,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
                 ]
     )?;
     msg!("Hello9");
-    let avatar_pda_account_data = AvatarData{
+    let avatar_pda_account_data = GovernorData{
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
         numeration: sales_account_data.counter,
@@ -557,7 +557,6 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
 fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
 
-
     let mint_account_info = next_account_info(account_info_iter)?;
     let associated_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
@@ -577,7 +576,7 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         &mint_account_info.key.to_bytes(),
         &associated_account_info.key.to_bytes()
     ];
-    let avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+    let avatar_pda_account_data: GovernorData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
     let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
     if avatar_data_pda_info.key != &avatar_data_pda{
         Err(ProgramError::InvalidAccountData)?
@@ -632,7 +631,7 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) 
             &mint_account_info.key.to_bytes(),
             &associated_account_info.key.to_bytes()
         ];
-        let mut avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
+        let mut avatar_pda_account_data: GovernorData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
         let (avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
         if avatar_data_pda_info.key != &avatar_data_pda{
             Err(ProgramError::InvalidAccountData)?
@@ -694,7 +693,7 @@ fn burn_nft(program_id: &Pubkey, accounts: &[AccountInfo], rarity: u8)-> Program
             &curr_mint_account_info.key.to_bytes(),
             &curr_associated_account_info.key.to_bytes()
         ];
-        let curr_avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&curr_avatar_data_pda_info.data.borrow())?;
+        let curr_avatar_pda_account_data: GovernorData = try_from_slice_unchecked(&curr_avatar_data_pda_info.data.borrow())?;
         let (curr_avatar_data_pda, _avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id);
         if curr_avatar_data_pda_info.key != &curr_avatar_data_pda{
             msg!("Error_Bn_1");
@@ -719,9 +718,9 @@ pub fn process_instructions(
     instruction_data: &[u8],
 ) -> ProgramResult {
 
-        if program_id != &governor_id::id(){
-            Err(ProgramError::IncorrectProgramId)?
-        }
+        // if program_id != &governor_id::id(){
+        //     Err(ProgramError::IncorrectProgramId)?
+        // }
         let instruction = InstructionEnum::decode(instruction_data)?;
         match instruction {
             InstructionEnum::MintNft =>{

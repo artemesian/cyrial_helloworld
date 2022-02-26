@@ -1,5 +1,5 @@
 [package]
-name = "Avatar"
+name = "Table"
 version = "0.1.0"
 edition = "2021"
 
@@ -26,5 +26,5 @@ spl-token = "3.2.0"
 
 
 [lib]
-name = "avatar"
+name = "table"
 crate-type = ["cdylib","lib"]   
