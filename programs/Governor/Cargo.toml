@@ -1,5 +1,5 @@
 [package]
-name = "cyrial_helloworld"
+name = "governor"
 version = "0.1.0"
 edition = "2021"
 
@@ -26,5 +26,9 @@ spl-token = "3.2.0"
 
 
 [lib]
-name = "cyrial_helloworld"
+name = "governor"
 crate-type = ["cdylib","lib"]   
+
+[package.metadata.x]
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Governor/target/deploy/governor-keypair.json /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Governor/target/deploy/Governor.so"
+build-deploy = "cargo build-bpf && solana program deploy /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Governor/target/deploy/Governor.so"

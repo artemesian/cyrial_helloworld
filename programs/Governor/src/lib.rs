@@ -32,7 +32,7 @@ pub mod vault_id {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Copy, Clone)]
-pub struct Sales{
+pub struct GovernorSales{
     pub vault_total: f32,
     pub counter: u32,
 }
@@ -163,7 +163,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 }
 
 
-fn get_price(sales_account_data:Sales) -> u64{
+fn get_price(sales_account_data:GovernorSales) -> u64{
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
     (unitary  * (i32::pow(10,9) as f32)) as u64
@@ -256,7 +256,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&sales_pda_info.data);
-    let mut sales_account_data: Sales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    let mut sales_account_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
@@ -591,7 +591,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
     )?;
 
 
-    let sales_account_data = Sales{
+    let sales_account_data = GovernorSales{
         vault_total : 1.0,
         counter :  1
     };
