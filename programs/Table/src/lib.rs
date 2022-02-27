@@ -9,7 +9,7 @@ use solana_program::{
     borsh::{try_from_slice_unchecked},
     program::{invoke, invoke_signed}, 
     pubkey::Pubkey,
-    instruction::{Instruction},
+    // instruction::{Instruction},
     system_instruction,
     sysvar::{rent::Rent, Sysvar},
     program_error::ProgramError, program_pack::Pack,
@@ -69,9 +69,9 @@ pub struct GovernorData{
     pub xp: u32,
 }
 
-fn get_num_cnt(arr: &[u8]) -> u32 {
-    arr[0] as u32 * arr[1] as u32 + arr[2] as u32
-}
+// fn get_num_cnt(arr: &[u8]) -> u32 {
+//     arr[0] as u32 * arr[1] as u32 + arr[2] as u32
+// }
 
 mod compute_budget{
     solana_program::declare_id!("ComputeBudget111111111111111111111111111111");
@@ -239,7 +239,7 @@ fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u8
         Err(ProgramError::InvalidAccountData)?
     }
 
-    if payer_governor_token_data.amount < 1  {
+    if payer_governor_token_data.amount != 1  {
         Err(ProgramError::InsufficientFunds)?
     }
 
@@ -624,8 +624,6 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
     
         )?;
     }
-
-
 
     Ok(())
 }

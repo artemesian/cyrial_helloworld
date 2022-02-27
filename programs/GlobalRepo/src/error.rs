@@ -6,7 +6,7 @@ use num_derive::FromPrimitive;
 
 #[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
 pub enum GlobalError {
-    #[error("Struct Ids checked to not match")]
+    #[error("Struct Ids checked do not match")]
     InvalidStructId,
 
 
