@@ -496,7 +496,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     )?;
     msg!("Hello9");
     let avatar_pda_account_data = AvatarData{
-        struct_id: 1,
+        struct_id: StructId::encode(StructId::AvatarData0_0_1)?,
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
         numeration: sales_account_data.counter,
@@ -667,7 +667,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
 
     
     let new_container_data = RentContainerData{
-        struct_id: 2,
+        struct_id: StructId::encode(StructId::RentContainerData0_0_1)?,
         mint_address: mint_account_info.key.to_bytes(),
         owner: payer_account_info.key.to_bytes(),
         state: true,
@@ -818,7 +818,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         Err(ProgramError::Custom(3))?
     }
     let account_rent_data = AccountRentSpace{
-        struct_id: 3,
+        struct_id: StructId::encode(StructId::AccountRentSpace0_0_1)?,
         state: true,
         nft_owner: rent_container_data.owner,
         mint_id: mint_account_info.key.to_bytes(),
@@ -1101,7 +1101,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
         Err(ProgramError::Custom(3))?
     }
     let account_rent_data = AccountRentSpace{
-        struct_id: 4,
+        struct_id: StructId::encode(StructId::AccountRentSpace0_0_1)?,
         state: false,
         nft_owner: rent_container_data.owner,
         mint_id: mint_account_info.key.to_bytes(),
@@ -1192,7 +1192,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
 
 
     let sales_account_data = AvatarSales{
-        struct_id: 0,
+        struct_id: StructId::encode(StructId::AvatarSales0_0_1)?,
         vault_total : 1.0,
         counter :  1,
         rent_min_listed: 0,
@@ -1473,7 +1473,7 @@ mod tests {
     // use solana_program::pubkey::Pubkey;
 
     use crate::{AvatarSales, get_price, get_num_cnt, get_rand_num};
-    // use global_repo::StructId;
+    use global_repo::StructId;
     use solana_program::{pubkey::Pubkey, msg};
     use std::str::FromStr;
 
@@ -1482,7 +1482,7 @@ mod tests {
         // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
 
         let sales_account_data = AvatarSales{
-            struct_id: 0,
+            struct_id: StructId::encode(StructId::AvatarSales0_0_1)?,
             vault_total :0.0,
             counter :0,
             rent_min_listed: 0,

@@ -22,7 +22,6 @@ pub enum StructId{
     GovernorsVote0_0_1,
     ProposalResult0_0_1,
     Proposal0_0_1,
-    // RequestUnits0_0_1,
     TableSales0_0_1,
     TableData0_0_1,
     ProposalNumGovernors0_0_1,
@@ -36,7 +35,47 @@ impl StructId{
         match struct_id {
             0 => {Ok(Self::AvatarSales0_0_1)}
             1 => {Ok(Self::AvatarData0_0_1)}
+            2 => {Ok(Self::RentContainerData0_0_1)}
+            3 => {Ok(Self::AccountRentSpace0_0_1)}
+            4 => {Ok(Self::CollectionData0_0_1)}
+            5 => {Ok(Self::ContainerData0_0_1)}
+            6 => {Ok(Self::GovernorData0_0_1)}
+            7 => {Ok(Self::GovernorSales0_0_1)}
+            8 => {Ok(Self::Proposals0_0_1)}
+            9 => {Ok(Self::GovernorVote0_0_1)}
+            10 => {Ok(Self::GovernorsVote0_0_1)}
+            11 => {Ok(Self::ProposalResult0_0_1)}
+            12 => {Ok(Self::Proposal0_0_1)}
+            13 => {Ok(Self::TableSales0_0_1)}
+            14 => {Ok(Self::TableData0_0_1)}
+            15 => {Ok(Self::ProposalNumGovernors0_0_1)}
+            16 => {Ok(Self::ProposalLockGovernor0_0_1)}
+            17 => {Ok(Self::DsolData0_0_1)}
             _ => {Err(GlobalError::InvalidStructId)}
+        }
+    }
+
+    pub fn encode(enumval: Self) -> Result<u32, GlobalError> {
+        match enumval {
+            Self::AvatarSales0_0_1 => {Ok(0)}
+            Self::AvatarData0_0_1 => {Ok(1)}
+            Self::RentContainerData0_0_1 => {Ok(2)}
+            Self::AccountRentSpace0_0_1 => {Ok(3)}
+            Self::CollectionData0_0_1 => {Ok(4)}
+            Self::ContainerData0_0_1 => {Ok(5)}
+            Self::GovernorData0_0_1 => {Ok(6)}
+            Self::GovernorSales0_0_1 => {Ok(7)}
+            Self::Proposals0_0_1 => {Ok(8)}
+            Self::GovernorVote0_0_1 => {Ok(9)}
+            Self::GovernorsVote0_0_1 => {Ok(10)}
+            Self::ProposalResult0_0_1 => {Ok(11)}
+            Self::Proposal0_0_1 => {Ok(12)}
+            Self::TableSales0_0_1 => {Ok(13)}
+            Self::TableData0_0_1 => {Ok(14)}
+            Self::ProposalNumGovernors0_0_1 => {Ok(15)}
+            Self::ProposalLockGovernor0_0_1 => {Ok(16)}
+            Self::DsolData0_0_1 => {Ok(17)}
+            // _ => {Err(GlobalError::InvalidStructId)}
         }
     }
 }
