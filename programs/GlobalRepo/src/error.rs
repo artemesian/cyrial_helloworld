@@ -9,6 +9,12 @@ pub enum GlobalError {
     #[error("Struct Ids checked do not match")]
     InvalidStructId,
 
+    #[error("Signature will exceed maximum necessary if allowed, Hence I yelled")]
+    TooManySigningGovernors,
+
+    #[error("Keys comparison Doesn't match")]
+    KeypairNotEqual,
+
 
 }
 

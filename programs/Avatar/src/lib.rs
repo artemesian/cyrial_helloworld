@@ -35,7 +35,7 @@ entrypoint!(process_instructions);
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct AvatarSales{
-     struct_id: StructId,
+     struct_id: u32,
      vault_total: f32,
      counter: u32,
      rent_min_listed: u32,
@@ -45,7 +45,7 @@ struct AvatarSales{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct AvatarData{
-     struct_id: StructId,
+     struct_id: u32,
      date_created: u32,
      unlockable_date: u32,
      numeration: u32,
@@ -59,7 +59,7 @@ struct AvatarData{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct RentContainerData{
-    struct_id: StructId,
+    struct_id: u32,
     mint_address: [u8;32],
     owner: [u8;32],
     renter: [u8;32],
@@ -75,7 +75,7 @@ struct RentContainerData{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct AccountRentSpace{
-    struct_id: StructId,
+    struct_id: u32,
     state: bool,
     nft_owner: [u8;32],
     mint_id: [u8;32],
@@ -267,15 +267,12 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // msg!("{:?}",&sales_pda_info.data);
     let mut sales_account_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
 
-    if match sales_account_data.struct_id{
-        StructId::AvatarSales0_0_1=> {false}
-        _ => {
-                true
-        }
-    } {
+    if match StructId::decode(sales_account_data.struct_id)?{
+        StructId::AvatarSales0_0_1 => {false}
+        _ => {true}
+    }{
         Err(GlobalError::InvalidStructId)?
     }
-
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
     let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
 
@@ -499,7 +496,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     )?;
     msg!("Hello9");
     let avatar_pda_account_data = AvatarData{
-        struct_id: StructId::AvatarData0_0_1,
+        struct_id: 1,
         date_created: current_timestamp,
         unlockable_date: unlockable_date,
         numeration: sales_account_data.counter,
@@ -611,7 +608,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     }
 
     let mut collection_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
-    if match collection_data.struct_id{
+    if match StructId::decode(collection_data.struct_id)?{
         StructId::AvatarSales0_0_1=> {false}
         _ => {
                 true
@@ -653,7 +650,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     else{
         let current_container_data: RentContainerData = try_from_slice_unchecked(&container_account_info.data.borrow())?;
 
-        if match current_container_data.struct_id{
+        if match StructId::decode(current_container_data.struct_id)?{
             StructId::RentContainerData0_0_1=> {false}
             _ => {
                     true
@@ -670,7 +667,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
 
     
     let new_container_data = RentContainerData{
-        struct_id: StructId::RentContainerData0_0_1,
+        struct_id: 2,
         mint_address: mint_account_info.key.to_bytes(),
         owner: payer_account_info.key.to_bytes(),
         state: true,
@@ -688,7 +685,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
 
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
 
-    if match avatar_data.struct_id{
+    if match StructId::decode(avatar_data.struct_id)?{
         StructId::AvatarData0_0_1=> {false}
         _ => {
                 true
@@ -763,7 +760,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     }
 
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
-    if match avatar_data.struct_id{
+    if match StructId::decode(avatar_data.struct_id)?{
         StructId::AvatarData0_0_1=> {false}
         _ => {
                 true
@@ -782,7 +779,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     }
 
     let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
-    if match rent_container_data.struct_id{
+    if match StructId::decode(rent_container_data.struct_id)?{
         StructId::RentContainerData0_0_1=> {false}
         _ => {
                 true
@@ -808,7 +805,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     rent_container_data.ending_date = current_timestamp as u64 + rent_container_data.duration;
     let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
 
-    if match temp_account_rent_data.struct_id{
+    if match StructId::decode(temp_account_rent_data.struct_id)?{
         StructId::AccountRentSpace0_0_1=> {false}
         _ => {
                 true
@@ -821,7 +818,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         Err(ProgramError::Custom(3))?
     }
     let account_rent_data = AccountRentSpace{
-        struct_id: StructId::AccountRentSpace0_0_1,
+        struct_id: 3,
         state: true,
         nft_owner: rent_container_data.owner,
         mint_id: mint_account_info.key.to_bytes(),
@@ -879,7 +876,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Result<
     }
 
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
-    if match avatar_data.struct_id{
+    if match StructId::decode(avatar_data.struct_id)?{
         StructId::AvatarData0_0_1=> {false}
         _ => {
                 true
@@ -897,7 +894,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Result<
     }
     let mut rent_container_data: RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
 
-    if match rent_container_data.struct_id{
+    if match StructId::decode(rent_container_data.struct_id)?{
         StructId::RentContainerData0_0_1=> {false}
         _ => {
                 true
@@ -953,7 +950,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Result<
     avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
 
     let mut sales_account_data: AvatarSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
-    if match sales_account_data.struct_id{
+    if match StructId::decode(sales_account_data.struct_id)?{
         StructId::AvatarSales0_0_1=> {false}
         _ => {
                 true
@@ -972,7 +969,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Result<
 
     let max_container_data: RentContainerData = try_from_slice_unchecked(&max_container_info.data.borrow())?;
 
-    if match max_container_data.struct_id{
+    if match StructId::decode(max_container_data.struct_id)?{
         StructId::RentContainerData0_0_1=> {false}
         _ => {
                 true
@@ -996,7 +993,7 @@ fn close_lease_listing(program_id: &Pubkey, accounts: &[AccountInfo]) -> Result<
 
     let mut max_avatar_data: AvatarData = try_from_slice_unchecked(&max_container_avatar_pda_info.data.borrow())?;
 
-    if match avatar_data.struct_id{
+    if match StructId::decode(avatar_data.struct_id)?{
         StructId::AvatarData0_0_1=> {false}
         _ => {
                 true
@@ -1053,7 +1050,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     }
 
     let mut avatar_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
-    if match avatar_data.struct_id{
+    if match StructId::decode(avatar_data.struct_id)?{
         StructId::AvatarData0_0_1=> {false}
         _ => {
                 true
@@ -1072,7 +1069,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     }
 
     let mut rent_container_data:RentContainerData = try_from_slice_unchecked(&rent_container_pda_info.data.borrow())?;
-    if match rent_container_data.struct_id{
+    if match StructId::decode(rent_container_data.struct_id)?{
         StructId::RentContainerData0_0_1=> {false}
         _ => {
                 true
@@ -1091,7 +1088,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     rent_container_data.ending_date = current_timestamp as u64;
     let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
 
-    if match temp_account_rent_data.struct_id{
+    if match StructId::decode(temp_account_rent_data.struct_id)?{
         StructId::AccountRentSpace0_0_1=> {false}
         _ => {
                 true
@@ -1104,7 +1101,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
         Err(ProgramError::Custom(3))?
     }
     let account_rent_data = AccountRentSpace{
-        struct_id: StructId::AccountRentSpace0_0_1,
+        struct_id: 4,
         state: false,
         nft_owner: rent_container_data.owner,
         mint_id: mint_account_info.key.to_bytes(),
@@ -1195,7 +1192,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
 
 
     let sales_account_data = AvatarSales{
-        struct_id: StructId::AvatarSales0_0_1,
+        struct_id: 0,
         vault_total : 1.0,
         counter :  1,
         rent_min_listed: 0,
@@ -1268,7 +1265,7 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     ];
     let avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
 
-    if match avatar_pda_account_data.struct_id{
+    if match StructId::decode(avatar_pda_account_data.struct_id)?{
         StructId::AvatarData0_0_1=> {false}
         _ => {
                 true
@@ -1331,7 +1328,7 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) 
         ];
         let mut avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&avatar_data_pda_info.data.borrow())?;
 
-        if match avatar_pda_account_data.struct_id{
+        if match StructId::decode(avatar_pda_account_data.struct_id)?{
             StructId::AvatarData0_0_1=> {false}
             _ => {
                     true
@@ -1402,7 +1399,7 @@ fn burn_nft(program_id: &Pubkey, accounts: &[AccountInfo], rarity: u8)-> Program
         ];
         let curr_avatar_pda_account_data: AvatarData = try_from_slice_unchecked(&curr_avatar_data_pda_info.data.borrow())?;
 
-        if match curr_avatar_pda_account_data.struct_id{
+        if match StructId::decode(curr_avatar_pda_account_data.struct_id)?{
             StructId::AvatarData0_0_1=> {false}
             _ => {
                     true
@@ -1476,7 +1473,7 @@ mod tests {
     // use solana_program::pubkey::Pubkey;
 
     use crate::{AvatarSales, get_price, get_num_cnt, get_rand_num};
-    use global_repo::StructId;
+    // use global_repo::StructId;
     use solana_program::{pubkey::Pubkey, msg};
     use std::str::FromStr;
 
@@ -1485,7 +1482,7 @@ mod tests {
         // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
 
         let sales_account_data = AvatarSales{
-            struct_id: StructId::AvatarSales0_0_1,
+            struct_id: 0,
             vault_total :0.0,
             counter :0,
             rent_min_listed: 0,

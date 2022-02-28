@@ -2,6 +2,8 @@
 //     declare_id,
 // };
 use borsh::{BorshDeserialize, BorshSerialize};
+use error::GlobalError;
+// use solana_program::program_error::ProgramError;
 
 pub mod error;
 
@@ -29,6 +31,16 @@ pub enum StructId{
 
 }
 
+impl StructId{
+    pub fn decode(struct_id: u32) -> Result<Self, GlobalError> {
+        match struct_id {
+            0 => {Ok(Self::AvatarSales0_0_1)}
+            1 => {Ok(Self::AvatarData0_0_1)}
+            _ => {Err(GlobalError::InvalidStructId)}
+        }
+    }
+}
+
 
 
 pub mod governor{
@@ -51,7 +63,7 @@ pub mod dsol{
 }
 
 pub mod table{
-    solana_program::declare_id!("7ZAXECRFXUJHU2L5G5imivRL3A7svS3LP9bEA3pRR6tG");
+    solana_program::declare_id!("ByxLnXdxpgxTWbUr8DgKbByKGqNjuR2nJ4RSfAYmRSB5");
 }
 
 pub mod marketplace{

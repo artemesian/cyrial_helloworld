@@ -297,8 +297,8 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     )?;
     msg!("Hello2");
 
-    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"cyrial_pda"], program_id);
-    let signers_seeds: &[&[u8]; 2] = &[b"cyrial_pda", &[mint_authority_bump]];
+    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"mint_authority"], program_id);
+    let signers_seeds: &[&[u8]; 2] = &[b"mint_authority", &[mint_authority_bump]];
     if &mint_authority_pda != mint_authority_info.key {
         Err(ProgramError::InvalidAccountData)?
     }
@@ -451,7 +451,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let governor_data_pda_seed: &[&[u8]; 3] = &[
         b"governor_data_pda",
         &mint_account_info.key.to_bytes(),
-        &associated_account_info.key.to_bytes()
     ];
     let (governor_data_pda, governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id); 
     if governor_data_pda_info.key != &governor_data_pda{
@@ -471,7 +470,6 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
             &[        
                 b"governor_data_pda",
                 &mint_account_info.key.to_bytes(),
-                &associated_account_info.key.to_bytes(),
                 &[governor_data_pda_bump]
                 ]
                 ]
@@ -526,7 +524,7 @@ pub enum InstructionEnum{
     UnlockMint,
     ClaimXp{xp_claims:Vec<u32>},
     CreateSalesAccount,
-    BurnNFTs{rarity: u8}
+    FreezeGov
 }
 
 
@@ -545,7 +543,7 @@ impl InstructionEnum{
                 }
                 Ok(Self::ClaimXp{xp_claims:xp_claims})}
             3 => {Ok(Self::CreateSalesAccount)}
-            4 => {Ok(Self::BurnNFTs{rarity: data[1]})}
+            5 => {Ok(Self::FreezeGov)}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -612,8 +610,8 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let sysvar_clock_info = next_account_info(account_info_iter)?;
 
     msg!("Hello_a");
-    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"cyrial_pda"], program_id);
-    let signers_seeds: &[&[u8]; 2] = &[b"cyrial_pda", &[mint_authority_bump]];
+    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"mint_authority"], program_id);
+    let signers_seeds: &[&[u8]; 2] = &[b"mint_authority", &[mint_authority_bump]];
     if &mint_authority_pda != mint_authority_info.key {
         Err(ProgramError::InvalidAccountData)?
     }
@@ -691,74 +689,46 @@ fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) 
     Ok(())
 }
 
-fn num_to_burn(rarity:u8) -> Result<u8, ProgramError>{
-    match rarity{
-        1=>{Ok(3)}
-        2=>{Ok(2)}
-        3=>{Ok(2)}
-        4=>{Ok(2)}
-        5=>{Ok(4)}
-        6=>{Ok(10)}
-        _=>{Err(ProgramError::InvalidInstructionData)?}
-    }
-}
 
-fn burn_nft(program_id: &Pubkey, accounts: &[AccountInfo], rarity: u8)-> ProgramResult{
-
+fn freeze_gov(program_id:&Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
-
-    let payer_account_info = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
+    // let payer_account_info = next_account_info(account_info_iter)?;
+    let authorizer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    let _ = next_account_info(account_info_iter)?;
-    
+    let associated_account_info = next_account_info(account_info_iter)?;
+    let mint_account_info = next_account_info(account_info_iter)?;
+    let mint_authority_info = next_account_info(account_info_iter)?;
 
-    let num_to_burn = match num_to_burn(rarity){
-        Ok(num) => { num }
-        Err(_) => {Err(ProgramError::InvalidInstructionData)?}
-    };
-
-    msg!("Hellow_Bn_1");
-    for _num_burned in 0..num_to_burn{
-
-        let curr_associated_account_info = next_account_info(account_info_iter)?;
-        let curr_mint_account_info = next_account_info(account_info_iter)?;
-        let curr_governor_data_pda_info = next_account_info(account_info_iter)?;
-
-
-        let governor_data_pda_seed: &[&[u8]; 3] = &[
-            b"governor_data_pda",
-            &curr_mint_account_info.key.to_bytes(),
-            &curr_associated_account_info.key.to_bytes()
-        ];
-        let curr_governor_pda_account_data: GovernorData = try_from_slice_unchecked(&curr_governor_data_pda_info.data.borrow())?;
-        let (curr_governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id);
-        if curr_governor_data_pda_info.key != &curr_governor_data_pda{
-            msg!("Error_Bn_1");
-            Err(ProgramError::InvalidAccountData)?
-        }
-        if curr_governor_pda_account_data.rarity != rarity{
-            msg!("Error_Bn_2");
-            Err(ProgramError::InvalidAccountData)?
-        }
-        invoke(
-            &burn(token_program_info.key, curr_associated_account_info.key, curr_mint_account_info.key, payer_account_info.key, &[], 1)?,
-            &[curr_associated_account_info.clone(), curr_mint_account_info.clone(), payer_account_info.clone()],
-        )?;
+    let (authorizer_pda, _authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], program_id);
+    if &authorizer_pda != authorizer_info.key || !authorizer_info.is_signer {
+        Err(ProgramError::InvalidAccountData)?
     }
-    msg!("Hellow_Bn_2");
-    Ok(mint_nft(program_id, accounts, Some(rarity+1))?)
-}
 
+    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"mint_authority"], program_id);
+    let signers_seeds: &[&[u8]; 2] = &[b"mint_authority", &[mint_authority_bump]];
+    if &mint_authority_pda != mint_authority_info.key {
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    invoke_signed(
+        &freeze_account(
+            &token_program_info.key,
+            &associated_account_info.key,
+            &mint_account_info.key,
+            &mint_authority_info.key,
+            &[]
+        )?,
+        &[
+            associated_account_info.clone(),
+            mint_account_info.clone(),
+            mint_authority_info.clone(),
+        ],
+        &[signers_seeds],
+
+    )?;
+    Ok(())
+}
 pub fn process_instructions(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -780,7 +750,7 @@ pub fn process_instructions(
                 claim_xp(program_id, accounts, xp_claims)
             }
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
-            InstructionEnum::BurnNFTs{rarity} => {burn_nft(program_id, accounts, rarity)}
+            InstructionEnum::FreezeGov => {freeze_gov(program_id, accounts)}
         }
 }
 
