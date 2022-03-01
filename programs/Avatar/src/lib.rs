@@ -1473,7 +1473,7 @@ mod tests {
     // use solana_program::pubkey::Pubkey;
 
     use crate::{AvatarSales, get_price, get_num_cnt, get_rand_num};
-    use global_repo::StructId;
+    // use global_repo::StructId;
     use solana_program::{pubkey::Pubkey, msg};
     use std::str::FromStr;
 
@@ -1482,7 +1482,7 @@ mod tests {
         // let mut x: Option<&Pubkey> = Some(&Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap());
 
         let sales_account_data = AvatarSales{
-            struct_id: StructId::encode(StructId::AvatarSales0_0_1)?,
+            struct_id: 0,
             vault_total :0.0,
             counter :0,
             rent_min_listed: 0,
