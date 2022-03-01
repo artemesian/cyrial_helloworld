@@ -102,7 +102,7 @@ pub mod dsol{
 }
 
 pub mod table{
-    solana_program::declare_id!("ByxLnXdxpgxTWbUr8DgKbByKGqNjuR2nJ4RSfAYmRSB5");
+    solana_program::declare_id!("7fmmvCJ1uH4sfLCdZrDAjJnfHejwtFbYL7aG8nnNR6Yz");
 }
 
 pub mod marketplace{
@@ -115,11 +115,12 @@ pub mod dsol_mint{
 
     use crate::vault;
 
-    solana_program::declare_id!("4hnebtBZBkWF8NvPr4XUdKQFNj2tHim8nqephcMCsBos");
+    solana_program::declare_id!("HSYdApQF2FKVNnX6FQ1ySYstGLe5Gp8NseHVFavWye66");
     pub fn vault_associated_token_account() -> Pubkey {
         get_associated_token_address(&vault::id(), &id())
     }
 }
+
 
 
 

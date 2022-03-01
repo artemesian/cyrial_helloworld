@@ -15,6 +15,15 @@ pub enum GlobalError {
     #[error("Keys comparison Doesn't match")]
     KeypairNotEqual,
 
+    #[error("Unlockable date not yet reached")]
+    NotUnlockableDate,
+
+    #[error("Issue closing account")]
+    CloseAccountError,
+
+    #[error("Table has already been minted")]
+    TableAlreadyMinted,
+
 
 }
 

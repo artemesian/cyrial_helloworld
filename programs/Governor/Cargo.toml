@@ -17,6 +17,8 @@ solana-program = "1.9.6"
 spl-token = { version = "3.2.0", features = ["no-entrypoint"]}
 spl-associated-token-account = { version = "1.0.3", features = ["no-entrypoint"]}
 metaplex-token-metadata = { version = "0.0.1", features = ["no-entrypoint"]}
+global_repo = { path = "../GlobalRepo"}
+
 
 [dev-dependencies]
 solana-program-test = "1.9.6"

@@ -61,10 +61,10 @@ struct TableData{
     date_created: u32,
     id: u32,
     rarity: u8,
-    // creators:  [String;5],
     creators:  Vec<[u8; 32]>,
     num_creators: u8,
-    governor_reward: u32
+    governor_reward: u32, 
+    minted: bool,
 }
 #[derive(BorshSerialize, BorshDeserialize)]
 struct ProposalNumGovernors{
@@ -220,10 +220,14 @@ fn get_price(sales_account_data: &TableSales) -> u64{
     15 * (((100.0 + x.powf(0.6) + 270.0*( std::f32::consts::E.powf(0.08*x - 10.0)/(1.0+std::f32::consts::E.powf(0.08*x - 10.0)) )  )/15.0)) as u64  * 10e8 as u64
 }
 
-fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
+fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo], payer_bump: u32) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
     
     let payer_account_info = next_account_info(account_info_iter)?;
+    let table_data_pda_info = next_account_info(account_info_iter)?;
+    let pending_tables_pda_info = next_account_info(account_info_iter)?;
+    let table_final_data_pda_info = next_account_info(account_info_iter)?;
+
     let payer_table_associated_account_info = next_account_info(account_info_iter)?;
     let payer_table_metadata_pda_info = next_account_info(account_info_iter)?;
     let vault_account_info = next_account_info(account_info_iter)?;
@@ -233,6 +237,49 @@ fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let token_program_info = next_account_info(account_info_iter)?;
     let rent_account_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
+
+
+    
+    let table_data_pda_seed: &[&[u8]; 3] = &[
+        b"table_data_pda",
+        &payer_account_info.key.to_bytes(),
+        &payer_bump.to_be_bytes()
+    ];
+    let (table_data_pda, _table_data_pda_bump) = Pubkey::find_program_address(table_data_pda_seed, program_id); 
+    if table_data_pda_info.key != &table_data_pda{
+        msg!("table data pdas do not match");
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+
+    let (pending_tables_pda, _pending_tables_bump) = Pubkey::find_program_address(&[b"pending_tables"], program_id);
+
+
+    if *pending_tables_pda_info.key != pending_tables_pda {
+        msg!("Pending tables pdas don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    let mut table_pda_data: TableData = try_from_slice_unchecked(&table_data_pda_info.data.borrow())?;
+
+    if table_pda_data.creators.len() as u8 != table_pda_data.num_creators {
+        Err(GlobalError::TooManySigningGovernors)?
+    }
+
+    if table_pda_data.minted{
+        Err(GlobalError::TableAlreadyMinted)?
+    }
+
+    let mut pending_tables: PendingTables = try_from_slice_unchecked(&pending_tables_pda_info.data.borrow())?;
+
+    pending_tables.tables.remove(pending_tables.tables.iter().position(|x| x.payer_pubkey == payer_account_info.key.to_bytes() && x.payer_bump == payer_bump).expect("Catstrophe, couldn't find in pending tables the requested table data"));
+    // let mut cnt:usize = 0;
+    // for tableloc in pending_tables.tables{
+    //     if tableloc.payer_pubkey == payer_account_info.key.to_bytes() && tableloc.payer_bump == payer_bump {
+    //         pending_tables.tables.remove(cnt);
+    //         break;
+    //     }
+    //     cnt += 1;
+    // }
 
 
 
@@ -322,7 +369,7 @@ fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     msg!("Hello_C_0");
     let (payer_table_metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &table_mint_account_info.key.to_bytes()], &id());
 
-    let (selected_uri, _rarity) = select_uri(get_rand_num(current_timestamp as f32, table_mint_account_info.key, program_id), None);
+    let (selected_uri, rarity) = select_uri(get_rand_num(current_timestamp as f32, table_mint_account_info.key, program_id), None);
 
     msg!("Hello_C_2 {:?} {:?}", payer_table_metadata_pda, payer_table_metadata_pda_info.key);
 
@@ -390,6 +437,38 @@ fn mint_table(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         &[signers_seeds],
     )?;
 
+    let table_final_data_pda_seed: &[&[u8]; 2] = &[
+        b"table_data_pda",
+        &table_mint_account_info.key.to_bytes(),
+    ];
+    let (table_final_data_pda, table_final_data_pda_bump) = Pubkey::find_program_address(table_final_data_pda_seed, program_id); 
+    if table_final_data_pda_info.key != &table_final_data_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
+    msg!("Hello8");
+    invoke_signed(
+        &system_instruction::create_account(
+            &payer_account_info.key,
+            &table_final_data_pda_info.key,
+            Rent::get()?.minimum_balance(200),
+            200,
+            &program_id,
+        ),
+        &[payer_account_info.clone(), table_final_data_pda_info.clone()],
+        &[
+            &[        
+                b"table_data_pda",
+                &table_mint_account_info.key.to_bytes(),
+                &[table_final_data_pda_bump]
+                ]
+                ]
+    )?;
+    msg!("Hello9");
+    table_pda_data.rarity = rarity;
+    table_pda_data.minted = true;
+    table_pda_data.serialize(&mut &mut table_final_data_pda_info.data.borrow_mut()[..])?;
+    table_pda_data.serialize(&mut &mut table_data_pda_info.data.borrow_mut()[..])?;
+
     Ok(())
 
 }
@@ -409,20 +488,35 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     let pending_tables_pda_info = next_account_info(account_info_iter)?;
     let main_vault_associated_info = next_account_info(account_info_iter)?;
+    let governor_data_pda_info = next_account_info(account_info_iter)?;
+    let governor_mint_account_info = next_account_info(account_info_iter)?;
     // let associated_token_program_info = next_account_info(account_info_iter)?;
     // TODO: At the end we shall have to have a unique main vault and use his address through out our contracts
+
+
+    let governor_data_pda_seed: &[&[u8]; 2] = &[
+        b"governor_data_pda",
+        &governor_mint_account_info.key.to_bytes(),
+    ];
+    let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, &governor::id()); 
+    if governor_data_pda_info.key != &governor_data_pda{
+        Err(ProgramError::InvalidAccountData)?
+    }
+
 
     let (pending_tables_pda, _pending_tables_bump) = Pubkey::find_program_address(&[b"pending_tables"], program_id);
 
 
     if *pending_tables_pda_info.key != pending_tables_pda {
+        msg!("Pending tables pdas don't match");
         Err(GlobalError::KeypairNotEqual)?
     }
 
     msg!("Position {:?}", payer_governor_token_account_info.key);
     let payer_governor_token_data = Account::unpack(&payer_governor_token_account_info.data.borrow())?;
-
+    msg!("Checkpoint reached");
     if payer_governor_token_data.is_frozen() {
+        msg!("Account Still Frozen, check it out");
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -453,7 +547,7 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
     // let space: usize = 82;
     // let rent_lamports = Rent::get()?.minimum_balance(space);
     // let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes()];
-    
+    msg!("just another checkpoint");
     let (table_sales_pda, _table_sales_pda_bump) = Pubkey::find_program_address(&[b"table_sales_pda"], program_id);
     msg!("Position {:?} {:?}", table_sales_pda, table_sales_pda_info.key);    
     if &table_sales_pda != table_sales_pda_info.key{
@@ -478,11 +572,13 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
 
 
     if vault_pda_associated != *vault_pda_dsol_token_account_info.key{
+        msg!("vault_pdas not equal");
         Err(GlobalError::KeypairNotEqual)?
     }
     
     let main_vault_assoc = get_associated_token_address(&global_repo::vault::id(), &global_repo::dsol_mint::id());
     if *main_vault_associated_info.key != main_vault_assoc {
+        msg!("main_vaults not equal");
         Err(GlobalError::KeypairNotEqual)?
     }
 
@@ -522,6 +618,7 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
     ];
     let (table_data_pda, table_data_pda_bump) = Pubkey::find_program_address(table_data_pda_seed, program_id); 
     if payer_table_data_pda_info.key != &table_data_pda{
+        msg!("{:?} < ---- > {:?}", payer_table_data_pda_info.key, table_data_pda);
         Err(ProgramError::InvalidAccountData)?
     }
     msg!("Hello8");
@@ -545,18 +642,22 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
     )?;
 
     msg!("Hello9");
-    let mut creators = Vec::new();
-    creators.push(payer_governor_token_account_info.key.to_bytes());
+    let governor_data: GovernorData = try_from_slice_unchecked(&governor_data_pda_info.data.borrow())?; //confirming governor is ours, via deserialization of struct
 
 
     let table_pda_account_data = TableData{
         id: sales_account_data.counter,
         rarity: 10,
         date_created: current_timestamp,
-        creators: creators,
+        creators: Vec::new(),
         num_creators: proposal_num_governors.num_of_governors,
-        governor_reward: governor_reward
+        governor_reward: governor_reward,
+        minted: false,
     };
+
+    if governor_data.unlockable_date >= current_timestamp { //Confirming 
+        Err(GlobalError::NotUnlockableDate)?
+    }
     table_pda_account_data.serialize(&mut &mut payer_table_data_pda_info.data.borrow_mut()[..])?;
     msg!("Hello_a");
 
@@ -592,19 +693,22 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
 
     let payer_governor_token_account = Account::unpack(&payer_governor_token_account_info.data.borrow())?;
     let mut table_data_pda_data: TableData = try_from_slice_unchecked(&table_data_pda_info.data.borrow())?;
-
+    msg!("Reached checkpoint 1");
     if payer_governor_token_account.is_frozen(){
+        msg!("Governor is frozen");
         Err(ProgramError::InvalidInstructionData)?
     }
 
     if table_data_pda_data.creators.len() >= table_data_pda_data.num_creators.into() {
+        msg!("Table already has enough signatures");
         Err(ProgramError::InvalidInstructionData)?
     }
+
 
     table_data_pda_data.creators.push(payer_governor_token_account_info.key.to_bytes());
 
     let mut governor_data: GovernorData = try_from_slice_unchecked(&payer_governor_data_pda_info.data.borrow())?;
-
+    msg!("Reached checkpoint 2");
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     // Getting timestamp
     let current_timestamp = clock.unix_timestamp as u32;
@@ -619,6 +723,7 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
     ];
     let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, &governor::id()); 
     if payer_governor_data_pda_info.key != &governor_data_pda{
+        msg!("Governor pdas don't match");
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -626,10 +731,10 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
 
     let (authorizer_pda, authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], program_id);
     let authorizer_signers_seeds: &[&[u8]; 2] = &[b"authorizer_pda", &[authorizer_pda_bump]];
-    if &authorizer_pda != governor_mint_authority_info.key {
+    if &authorizer_pda != authorizer_account_info.key {
+        msg!("authorizers do not match");
         Err(ProgramError::InvalidAccountData)?
     }
-
 
     let account_metas = vec![
             AccountMeta::new_readonly(authorizer_pda, true),
@@ -655,7 +760,8 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
         &[authorizer_signers_seeds],
 
     )?;
-
+     
+    msg!("Reached checkpoint 3");
     let (vault_pda, vault_pda_bump) = Pubkey::find_program_address(&[b"Dsol_vault_tables"], program_id);
 
     if vault_pda != *vault_pda_account_info.key{
@@ -674,10 +780,12 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
         &[ vault_pda_dsol_token_account_info.clone(), payer_dsol_token_account_info.clone(), vault_pda_account_info.clone()],
         &[&[b"Dsol_vault_tables", &[vault_pda_bump]]]
     )?;
-
+    msg!("Reached checkpoint 5");
     if table_data_pda_data.creators.len() as u8 > table_data_pda_data.num_creators {
         Err(GlobalError::TooManySigningGovernors)?
     }
+
+    table_data_pda_data.serialize(&mut &mut table_data_pda_info.data.borrow_mut()[..])?;
 
     Ok(())
 }
@@ -687,7 +795,7 @@ enum InstructionEnum{
     SignTableMint,
     CreateTableSalesAccount,
     BurnNFTs{rarity: u8},
-    MintTable,
+    MintTable{payer_bump: u32},
 }
 
 impl InstructionEnum{
@@ -698,7 +806,7 @@ impl InstructionEnum{
             InstructionEnum::SignTableMint => {Self::SignTableMint}
             InstructionEnum::CreateTableSalesAccount => {Self::CreateTableSalesAccount}
             InstructionEnum::BurnNFTs{rarity} => {Self::BurnNFTs{rarity:rarity}}
-            InstructionEnum::MintTable => {Self::MintTable}
+            InstructionEnum::MintTable{payer_bump} => {Self::MintTable{payer_bump:payer_bump}}
             // _ => {Err(ProgramError::InvalidInstructionData)}
         })
     }
@@ -712,14 +820,16 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
     let table_sales_pda_info = next_account_info(account_info_iter)?;
     let pending_tables_pda_info = next_account_info(account_info_iter)?;
     let vault_pda_dsol_token_account_info = next_account_info(account_info_iter)?;
+    let vault_account_info = next_account_info(account_info_iter)?;
     let main_vault_associated_info = next_account_info(account_info_iter)?;
+    let main_vault_info = next_account_info(account_info_iter)?;
     let mint_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let rent_account_info = next_account_info(account_info_iter)?;
 
     let (pending_tables_pda, pending_tables_bump) = Pubkey::find_program_address(&[b"pending_tables"], program_id);
-
+    msg!("Checkpoint01: {:?} --- {:?}", pending_tables_pda, pending_tables_pda_info.key);
     if pending_tables_pda != *pending_tables_pda_info.key{
         Err(GlobalError::KeypairNotEqual)?
     }
@@ -732,7 +842,7 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
     // let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
 
     let (table_sales_pda, table_sales_pda_bump) = Pubkey::find_program_address(&[b"table_sales_pda"], program_id);
-
+    msg!("Checkpoint02");
     if &table_sales_pda != table_sales_pda_info.key{
         Err(GlobalError::KeypairNotEqual)?
     }
@@ -740,12 +850,13 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
     let (vault_pda, _vault_pda_bump) = Pubkey::find_program_address(&[b"Dsol_vault_tables"], program_id);
     let vault_pda_associated = get_associated_token_address(&vault_pda, &global_repo::dsol_mint::id());
 
-
+    msg!("Checkpoint03");
     if vault_pda_associated != *vault_pda_dsol_token_account_info.key{
         Err(GlobalError::KeypairNotEqual)?
     }
     
     let main_vault_assoc = get_associated_token_address(&global_repo::vault::id(), &global_repo::dsol_mint::id());
+    msg!("Checkpoint04");
     if *main_vault_associated_info.key != main_vault_assoc {
         Err(GlobalError::KeypairNotEqual)?
     }
@@ -755,13 +866,13 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
     invoke(
         &spl_associated_token_account::create_associated_token_account(
             payer_account_info.key, 
-            &vault_pda_associated,
+            vault_account_info.key,
             &global_repo::dsol_mint::id(),
         ),
         &[
             payer_account_info.clone(),
             vault_pda_dsol_token_account_info.clone(),
-            payer_account_info.clone(),
+            vault_account_info.clone(),
             mint_info.clone(),
             system_account_info.clone(),
             token_program_info.clone(),
@@ -772,13 +883,13 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
     invoke(
         &spl_associated_token_account::create_associated_token_account(
             payer_account_info.key, 
-            &main_vault_assoc,
+            main_vault_info.key,
             &global_repo::dsol_mint::id(),
         ),
         &[
             payer_account_info.clone(),
             main_vault_associated_info.clone(),
-            payer_account_info.clone(),
+            main_vault_info.clone(),
             mint_info.clone(),
             system_account_info.clone(),
             token_program_info.clone(),
@@ -928,7 +1039,7 @@ pub fn process_instructions(
 
             InstructionEnum::BurnNFTs{rarity} => {burn_nft(program_id, accounts, rarity)}
 
-            InstructionEnum::MintTable => {mint_table(program_id, accounts)}
+            InstructionEnum::MintTable{payer_bump} => {mint_table(program_id, accounts, payer_bump)}
         }
 }
 

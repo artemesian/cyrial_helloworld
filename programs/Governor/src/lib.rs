@@ -17,6 +17,8 @@ use spl_associated_token_account::{create_associated_token_account, get_associat
 use spl_token::{instruction::*,state::Account};
 use metaplex_token_metadata::{instruction, state::{Creator, Metadata}};
 use metaplex_token_metadata::id;
+extern crate global_repo;
+
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
 use std::str::FromStr;
@@ -196,6 +198,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // let associated_token_program_info = next_account_info(account_info_iter)?;
     let temp_key = vault_id::id();
     if vault.key != &temp_key {
+        msg!("Problem with vault");
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -203,6 +206,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &avatar_mint_info.key.to_bytes()], &id());
 
     if *avatar_metadata_account_info.key != metadata_pda{
+        msg!("problem with Avatar metatdata");
         Err(ProgramError::InvalidAccountData)?
     }
 
@@ -210,9 +214,11 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 
     match metadata.data.creators{
         Some(creators) =>{
+            let mut found = false;
             for creator in creators.iter(){
                 if &creator.address == creator_account_info.key{
                     if creator.verified{
+                        found = true;
                         break;
                     }
                     else{
@@ -221,20 +227,24 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
                     }
                 }
             }
-            msg!("NFT, Wrong Creator in Account Sent");
-            Err(ProgramError::InvalidAccountData)?
+            if !found {
+                msg!("NFT, Wrong Creator in Account Sent");
+                Err(ProgramError::InvalidAccountData)?
+            }
         }
         None => {msg!("Cannot Certify Authenticity of this NFT"); Err(ProgramError::InvalidAccountData)?}
     }
 
-    let associated_mint_account = get_associated_token_address(payer_account_info.key, mint_account_info.key);
+    let associated_mint_account = get_associated_token_address(payer_account_info.key, avatar_mint_info.key);
     if associated_mint_account != *avatar_associated_account_info.key{
+        msg!("{:?} <------> {:?}", associated_mint_account, avatar_associated_account_info.key);
         Err(ProgramError::InvalidAccountData)?
     }
-
+    msg!("checkpoint_1");
     let associated_account_info_data = Account::unpack(&avatar_associated_account_info.data.borrow())?;
-
+    msg!("checkpoint_2");
     if associated_account_info_data.amount != 1{
+        msg!("Problem with balance of avatar account's mint");
         Err(ProgramError::Custom(1))?
     }
 
@@ -248,11 +258,12 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     let space: usize = 82;
     let rent_lamports = Rent::get()?.minimum_balance(space);
 
-    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
+    let sales_pda_seeds: &[&[u8]; 2]= &[b"sales_pda", &program_id.to_bytes()];
 
     let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
 
     if &sales_pda != sales_pda_info.key{
+        msg!("{:?} <-------> {:?}", sales_pda, sales_pda_info.key);
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&sales_pda_info.data);
@@ -448,7 +459,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     )?;
     msg!("Hello7");
 
-    let governor_data_pda_seed: &[&[u8]; 3] = &[
+    let governor_data_pda_seed: &[&[u8]; 2] = &[
         b"governor_data_pda",
         &mint_account_info.key.to_bytes(),
     ];
@@ -616,10 +627,9 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         Err(ProgramError::InvalidAccountData)?
     }
 
-    let governor_data_pda_seed: &[&[u8]; 3] = &[
+    let governor_data_pda_seed: &[&[u8]; 2] = &[
         b"governor_data_pda",
         &mint_account_info.key.to_bytes(),
-        &associated_account_info.key.to_bytes()
     ];
     let governor_pda_account_data: GovernorData = try_from_slice_unchecked(&governor_data_pda_info.data.borrow())?;
     let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id);
@@ -700,7 +710,7 @@ fn freeze_gov(program_id:&Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let mint_account_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
 
-    let (authorizer_pda, _authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], program_id);
+    let (authorizer_pda, _authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], &global_repo::table::id());
     if &authorizer_pda != authorizer_info.key || !authorizer_info.is_signer {
         Err(ProgramError::InvalidAccountData)?
     }
