@@ -243,7 +243,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         Err(ProgramError::InvalidAccountData)?
     }
 
-    msg!("Position 1");
+    // msg!("Position 1");
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     // Getting timestamp
     let current_timestamp = clock.unix_timestamp as u32;
@@ -252,16 +252,17 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     
     // let program_id = next_account_info(account_info_iter)?;
     let space: usize = 82;
-    msg!("Position before rent");
+    // msg!("Position before rent");
     let rent_lamports = Rent::get()?.minimum_balance(space);
     
-    msg!("Position id {:?}", program_id);
+    // msg!("Position id {:?}", program_id);
     // let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes()];
     
     let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(&[b"sales_pda"], program_id);
     
-    msg!("Position {:?} {:?}", sales_pda, sales_pda_info.key);
+    // msg!("Position {:?} {:?}", sales_pda, sales_pda_info.key);
     if &sales_pda != sales_pda_info.key{  //Checks both ownership and key
+        msg!("sales_pda don't match");
         Err(ProgramError::InvalidAccountData)?
     }
     // msg!("{:?}",&sales_pda_info.data);
@@ -278,7 +279,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 
     let price = get_price(&sales_account_data);
 
-    msg!("Current timestamp: {:?}", current_timestamp);
+    // msg!("Current timestamp: {:?}", current_timestamp);
     let unlockable_date: u32 = current_timestamp;
 
     // let rent = Rent::from_account_info(rent_account_info)?;
@@ -315,14 +316,15 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         ),
         &[payer_account_info.clone(), mint_account_info.clone()],
     )?;
-    msg!("Hello2");
 
     let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"avatar_mint_authority_pda"], program_id);
     let signers_seeds: &[&[u8]; 2] = &[b"avatar_mint_authority_pda", &[mint_authority_bump]];
     if &mint_authority_pda != mint_authority_info.key {
+        msg!("Mint authorities pdas don't match");
         Err(ProgramError::InvalidAccountData)?
     }
 
+    msg!("Initializing mint");
     invoke(
         &initialize_mint(
             &token_program_info.key,
@@ -337,8 +339,8 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
             // token_program_info.clone(),
         ],
     )?;
-    msg!("Hello3");
-
+    
+    msg!("Creating associated token account for mint");
     invoke(
         &create_associated_token_account(
             payer_account_info.key,
@@ -355,7 +357,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
             rent_account_info.clone(),
         ],
     )?;
-    msg!("Hello4");
+    msg!("minting to payer account");
 
     invoke_signed(
         &mint_to(
@@ -374,7 +376,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         &[signers_seeds],
     )?;
 
-    msg!("Hello_C");
+    // msg!("Hello_C");
 
     let mut creators = Vec::new();
     creators.push(Creator{address: *mint_authority_info.key, verified: true, share: 0});
@@ -396,14 +398,14 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // for i in new_hash.to_bytes().iter(){
     //     index_uri += (*i as u32) * (*i as u32);
     // }
-    msg!("Hello_C_0");
+    // msg!("Hello_C_0");
     let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &mint_account_info.key.to_bytes()], &id());
 
     let (selected_uri, rarity) = select_uri(get_rand_num(current_timestamp as f32, mint_account_info.key, program_id), selected_rarity);
 
-    msg!("Hello_C_2");
 
     if *metadata_pda_info.key != metadata_pda{
+        msg!("Metadata pdas don't match");
         Err(ProgramError::InvalidAccountData)?
     }
     msg!("Hello_C_3");
@@ -447,7 +449,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         &[mint_account_info.clone(), mint_authority_info.clone()],
         &[signers_seeds],
     )?;
-    msg!("Hello6");
+    // msg!("Hello6");
 
     // invoke_signed(
     //     &freeze_account(
@@ -474,9 +476,10 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     ];
     let (avatar_data_pda, avatar_data_pda_bump) = Pubkey::find_program_address(avatar_data_pda_seed, program_id); 
     if avatar_data_pda_info.key != &avatar_data_pda{
+        msg!("avatar data pdas don't match");
         Err(ProgramError::InvalidAccountData)?
     }
-    msg!("Hello8");
+    msg!("creating avatar data account for storage");
     invoke_signed(
         &system_instruction::create_account(
             &payer_account_info.key,
@@ -494,7 +497,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
                 ]
                 ]
     )?;
-    msg!("Hello9");
+    // msg!("Hello9");
     let avatar_pda_account_data = AvatarData{
         struct_id: StructId::encode(StructId::AvatarData0_0_1)?,
         date_created: current_timestamp,
@@ -508,8 +511,9 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
         rent_bump: 0
         
     };
+    msg!("Serializing avatar data in pda");
     avatar_pda_account_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
-    msg!("Hello_a");
+    // msg!("Hello_a");
 
     // invoke_signed(
     //     &system_instruction::create_account(
@@ -529,7 +533,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     //             ]
     // )?;
 
-    msg!("Hello_b");
+    // msg!("Hello_b");
     sales_account_data.vault_total += unitary;
     sales_account_data.counter += 1;
     

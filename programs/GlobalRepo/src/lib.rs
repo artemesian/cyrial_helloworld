@@ -91,7 +91,7 @@ pub mod vault{
 }
 
 pub mod avatar{
-    solana_program::declare_id!("DvTvXKZR9wveQzL3pBM7QJ9YZpConSXBXRTyDsEADNqX");
+    solana_program::declare_id!("ASV3UahwSK3oRmNkkbyhFNSRSaccL2jJvAYCYQa8RSgG");
 }
 pub mod dao{
     solana_program::declare_id!("DrSryh4M2nYyRSqgDNMiASK73LSoZrN56oHWXaAcnmCt");
