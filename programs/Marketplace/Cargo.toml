@@ -21,5 +21,5 @@ name = "marketplace"
 crate-type = ["cdylib","lib"]  
 
 [package.metadata.x]
-build-deploy-address = "cargo build-bpf && solana program deploy --program-id /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Marketplace/deploy/keypair.json /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Marketplace/target/deploy/Marketplace.so"
-build-deploy = "cargo build-bpf && solana program deploy /mnt/c/Users/ckamd/OneDrive/Desktop/Rust_Solana/cyrial_helloworld/programs/Marketplace/target/deploy/Marketplace.so"
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../Marketplace/deploy/keypair.json ../Marketplace/target/deploy/Marketplace.so"
+build-deploy = "cargo build-bpf && solana program deploy ../Marketplace/target/deploy/Marketplace.so"

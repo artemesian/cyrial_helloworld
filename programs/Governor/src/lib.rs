@@ -558,7 +558,8 @@ pub enum InstructionEnum{
     CreateSalesAccount,
     FreezeGov, 
     TakeLoan{amount: u64, storage_bump: u32}, 
-    PayLoan{amount: u64, storage_bump: u32}
+    PayLoan{amount: u64, storage_bump: u32}, 
+    BorrowMore{amount: u64, storage_bump: u32},
 }
 
 
@@ -573,9 +574,12 @@ impl InstructionEnum{
                 Ok(Self::TakeLoan{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
             3 => {Ok(Self::CreateSalesAccount)}
             4 => {
-                let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 10e9) as u64;
+                let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 1e9) as u64;
             Ok(Self::PayLoan{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
             5 => {Ok(Self::FreezeGov)}
+            6 => {
+                let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 1e9) as u64;
+            Ok(Self::BorrowMore{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -780,7 +784,6 @@ fn take_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage
         msg!("All Loans Pdas are not matching");
         Err(GlobalError::KeypairNotEqual)?
     }
-    create_all_loans_account(program_id, &[payer_account_info.clone(), all_loans_list_info.clone()])?;
 
     let mut all_loans: AllLoans = try_from_slice_unchecked(&all_loans_list_info.data.borrow())?;
 
@@ -825,7 +828,7 @@ fn take_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage
         ],
     )?;
     
-
+    msg!("Created associated token account");
 
     invoke(
         &transfer(
@@ -1042,6 +1045,7 @@ fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_
     }
 
     loan.payments.push(Payment{amount: amount, time: current_timestamp});
+    loan.last_pay_date = current_timestamp;
 
     loan.serialize(&mut &mut storage_pda_info.data.borrow_mut()[..])?;
     all_loans.serialize(&mut &mut all_loans_list_info.data.borrow_mut()[..])?;
@@ -1049,6 +1053,77 @@ fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_
 
     Ok(())
 }
+
+
+fn borrow_more(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_bump: u32) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let storage_pda_info = next_account_info(account_info_iter)?;
+    let vault_pda_info = next_account_info(account_info_iter)?;
+    let sales_pda_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
+
+    // let token_program_info = next_account_info(account_info_iter)?;
+    // let system_account_info = next_account_info(account_info_iter)?;
+    // let rent_account_info = next_account_info(account_info_iter)?;
+
+    let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    // Getting timestamp
+    let current_timestamp = clock.unix_timestamp as u32;
+
+    let (storage_pda, _storage_pda_bump) = Pubkey::find_program_address(&[b"Loan_Storage", &payer_account_info.key.to_bytes(), &storage_bump.to_be_bytes()], program_id);
+    if storage_pda != *storage_pda_info.key {
+        msg!("Storage pda's don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    let mut loan: Loan = try_from_slice_unchecked(&storage_pda_info.data.borrow())?;
+    if !loan.is_loan_active{
+        msg!("Loan is no longer active");
+        Err(GlobalError::NoLongerActive)?
+    }
+    
+    let (vault, _vault_bump) = Pubkey::find_program_address(&[b"Governor_Vault"], program_id);
+    if vault != *vault_pda_info.key {
+        msg!("Vault pda's don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+
+    
+    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
+
+    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
+
+    if &sales_pda != sales_pda_info.key{
+        msg!("Sales pdas do not match");
+        Err(ProgramError::InvalidAccountData)?
+    }
+    let sales_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+
+    if amount + loan.amount_left > (0.7*sales_data.vault_total as f64/sales_data.counter as f64) as u64{
+        msg!("Attempting to borrow more than allowable threashold of 70% of average Governor Backing");
+        Err(GlobalError::TooMuchRequestedAmount)?
+    }
+
+    if current_timestamp - loan.last_pay_date > 2_592_000{
+        msg!("Loan was already defaulted or already paid for completeley");
+        Err(GlobalError::LoanPaymentError)?
+    }
+    invoke( 
+        &system_instruction::transfer( &vault_pda_info.key,payer_account_info.key, amount as u64),
+        &[vault_pda_info.clone(), payer_account_info.clone()]
+    )?;
+
+    loan.amount_left += amount;
+
+    loan.serialize(&mut &mut storage_pda_info.data.borrow_mut()[..])?;
+
+
+    Ok(())
+}
+
+
+
 pub fn process_instructions(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -1070,6 +1145,7 @@ pub fn process_instructions(
             InstructionEnum::FreezeGov => {freeze_gov(program_id, accounts)}
             InstructionEnum::TakeLoan {amount, storage_bump } => {take_loan(program_id, accounts, amount, storage_bump)},
             InstructionEnum::PayLoan {amount, storage_bump} => {pay_loan(program_id, accounts, amount, storage_bump)},
+            InstructionEnum::BorrowMore {amount, storage_bump} => {borrow_more(program_id, accounts, amount, storage_bump)},
         }
 }
 

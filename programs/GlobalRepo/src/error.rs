@@ -36,6 +36,9 @@ pub enum GlobalError {
     #[error("Exhorbitant amount attempted to pay")]
     ExhorbitantAmount,
 
+    #[error("No longer Active")]
+    NoLongerActive
+
 }
 
 impl From<GlobalError> for ProgramError {
