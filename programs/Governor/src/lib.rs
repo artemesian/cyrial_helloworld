@@ -579,6 +579,7 @@ impl InstructionEnum{
             5 => {Ok(Self::FreezeGov)}
             6 => {
                 let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 1e9) as u64;
+                msg!("Total before multiplication: {:?} <---> Num_Cnt_1: {:?}, <---> Num_Cnt_2 {:?}", total, get_num_cnt(&data[1..4]) as f32 , get_num_cnt(&data[4..7]));
             Ok(Self::BorrowMore{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
@@ -772,7 +773,7 @@ fn take_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage
         Err(ProgramError::InvalidAccountData)?
     }
     let sales_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
-    if amount > (0.7*sales_data.vault_total as f64 *10e9 as f64/sales_data.counter as f64) as u64{
+    if amount > (0.7e9*sales_data.vault_total as f64 /sales_data.counter as f64) as u64{
         msg!("requested borrow ammount exceeds 70% of the average backing per governor");
         Err(GlobalError::TooMuchRequestedAmount)?
     }
@@ -1020,11 +1021,12 @@ fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_
     while ch_time + 2_592_000 < current_timestamp{
         ch_time += 2_592_000;
     }
-
+    let mut multiplier = 1.0;
     if loan.last_pay_date <= ch_time{
             amount_to_sub = amount - ((loan.monthly_interest_numerator as f64 / loan.monthly_interest_denominator as f64) * loan.amount_left as f64 ) as u64;
+            multiplier += (loan.monthly_interest_numerator as f64 + 0.15)/ loan.monthly_interest_denominator as f64;
     }
-    if amount_to_sub as f32 > loan.amount_left as f32 *1.0005 {
+    if amount_to_sub as f64 > loan.amount_left as f64 * multiplier{
         msg!("Ammount attempted to pay is exhorbitantly large");
         Err(GlobalError::ExhorbitantAmount)?
     }
@@ -1041,6 +1043,7 @@ fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_
             &[&[b"Loan_Storage", &payer_account_info.key.to_bytes(), &storage_bump.to_be_bytes(), &[storage_pda_bump]]]
         )?;
         loan.is_loan_active = false;
+        loan.amount_left = 0;
 
     }
 
@@ -1083,7 +1086,7 @@ fn borrow_more(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, stora
         Err(GlobalError::NoLongerActive)?
     }
     
-    let (vault, _vault_bump) = Pubkey::find_program_address(&[b"Governor_Vault"], program_id);
+    let (vault, vault_bump) = Pubkey::find_program_address(&[b"Governor_Vault"], program_id);
     if vault != *vault_pda_info.key {
         msg!("Vault pda's don't match");
         Err(GlobalError::KeypairNotEqual)?
@@ -1100,8 +1103,8 @@ fn borrow_more(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, stora
     }
     let sales_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
 
-    if amount + loan.amount_left > (0.7*sales_data.vault_total as f64/sales_data.counter as f64) as u64{
-        msg!("Attempting to borrow more than allowable threashold of 70% of average Governor Backing");
+    if amount + loan.amount_left > (0.7e9*sales_data.vault_total as f64/sales_data.counter as f64) as u64{
+        msg!("Attempting to borrow more than allowable threashold of 70% of average Governor Backing <-----> total: {:?}, <---> {:?}", amount + loan.amount_left, (0.7e9*sales_data.vault_total as f64/sales_data.counter as f64));
         Err(GlobalError::TooMuchRequestedAmount)?
     }
 
@@ -1109,9 +1112,10 @@ fn borrow_more(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, stora
         msg!("Loan was already defaulted or already paid for completeley");
         Err(GlobalError::LoanPaymentError)?
     }
-    invoke( 
+    invoke_signed( 
         &system_instruction::transfer( &vault_pda_info.key,payer_account_info.key, amount as u64),
-        &[vault_pda_info.clone(), payer_account_info.clone()]
+        &[vault_pda_info.clone(), payer_account_info.clone()],
+        &[&[b"Governor_Vault", &[vault_bump]]]
     )?;
 
     loan.amount_left += amount;

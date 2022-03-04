@@ -83,10 +83,10 @@ impl StructId{
 
 
 pub mod governor{
-    solana_program::declare_id!("GWJQHiudaVnhBmvCkRmMPeWs2rffhG2fmkXVRJHM9t5s");
+    solana_program::declare_id!("8Ga7yNCYJiJ6HLTZMu14iNh6una9AGZvuM4n9napx1v3");
 
     pub mod vault{
-       solana_program::declare_id!("4eeqV9wkdBYJyVopZiTkUoH5XE7JpYJfavZ4NkKbvWW6");
+       solana_program::declare_id!("25N4Q6k5PPFmeqAco84y7UuM1w9bNmyJdssoJLJ9GqXv");
     }
 }
 
