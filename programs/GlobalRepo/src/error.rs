@@ -24,6 +24,17 @@ pub enum GlobalError {
     #[error("Table has already been minted")]
     TableAlreadyMinted,
 
+    #[error("Too much requested")]
+    TooMuchRequestedAmount,
+
+    #[error("Ammount too miniscule")]
+    AmountTooSmall,
+
+    #[error("Last previous pay date to distant from current date")]
+    LoanPaymentError,
+
+    #[error("Exhorbitant amount attempted to pay")]
+    ExhorbitantAmount,
 
 }
 

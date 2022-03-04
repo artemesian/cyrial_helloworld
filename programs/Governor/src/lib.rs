@@ -1,4 +1,5 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use global_repo::error::GlobalError;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint,
@@ -25,14 +26,35 @@ use std::str::FromStr;
 entrypoint!(process_instructions);
 
 
-pub mod governor_id {
-    solana_program::declare_id!("DdyiDbh71JnpYbxdA9i4ECcd573sTm8Uur2GCgcB3P5k");
+#[derive(BorshSerialize, BorshDeserialize)]
+struct Payment{
+    amount: u64,
+    time: u32
 }
 
-pub mod vault_id {
-    solana_program::declare_id!("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z");
+#[derive(BorshSerialize, BorshDeserialize)]
+struct Loan{
+    mint: [u8;32],
+    initial_amount: u64,
+    amount_left: u64,
+    payments: Vec<Payment>,
+    monthly_interest_numerator: u32,
+    monthly_interest_denominator: u32,
+    initial_loan_date: u32,
+    last_pay_date: u32,
+    is_loan_active: bool
 }
 
+#[derive(BorshSerialize, BorshDeserialize)]
+struct LoanLoc{
+    payer: [u8;32], 
+    bump: u32
+}
+
+#[derive(BorshSerialize, BorshDeserialize)]
+struct AllLoans{
+   all_loans: Vec<LoanLoc>
+}
 #[derive(BorshSerialize, BorshDeserialize, Copy, Clone)]
 pub struct GovernorSales{
     pub vault_total: f32,
@@ -196,7 +218,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 
     
     // let associated_token_program_info = next_account_info(account_info_iter)?;
-    let temp_key = vault_id::id();
+    let temp_key = global_repo::governor::vault::id();
     if vault.key != &temp_key {
         msg!("Problem with vault");
         Err(ProgramError::InvalidAccountData)?
@@ -533,9 +555,10 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 pub enum InstructionEnum{
     MintNft,
     UnlockMint,
-    ClaimXp{xp_claims:Vec<u32>},
     CreateSalesAccount,
-    FreezeGov
+    FreezeGov, 
+    TakeLoan{amount: u64, storage_bump: u32}, 
+    PayLoan{amount: u64, storage_bump: u32}
 }
 
 
@@ -545,15 +568,13 @@ impl InstructionEnum{
             0 => {Ok(Self::MintNft)}
             1 => {Ok(Self::UnlockMint)}
             2 => {
-                let num_mints = get_num_cnt(&data[1..4]);
-                let mut xp_claims: Vec<u32> = Vec::new();
-                for i in 0..num_mints{
-                    let ind = i as usize * (3) + 1 + 3;
-                    let total_increase = get_num_cnt(&data[ind+32 .. ind+32+3]);
-                    xp_claims.push(total_increase);
-                }
-                Ok(Self::ClaimXp{xp_claims:xp_claims})}
+                    let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 1e9) as u64;
+                    msg!("Total before multiplication: {:?} <---> Num_Cnt_1: {:?}, <---> Num_Cnt_2 {:?}", total, get_num_cnt(&data[1..4]) as f32 , get_num_cnt(&data[4..7]));
+                Ok(Self::TakeLoan{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
             3 => {Ok(Self::CreateSalesAccount)}
+            4 => {
+                let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 10e9) as u64;
+            Ok(Self::PayLoan{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
             5 => {Ok(Self::FreezeGov)}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
@@ -566,10 +587,18 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
 
     let payer_account_info = next_account_info(account_info_iter)?;
     let sales_pda_info = next_account_info(account_info_iter)?;
+    let all_loans_list_info = next_account_info(account_info_iter)?;
+
+    let (all_loans_pda, _all_loans_pda_bump) = Pubkey::find_program_address(&[b"All Governor Loans"], program_id);
+
+    if all_loans_pda != *all_loans_list_info.key{
+        msg!("All Loans Pdas are not matching");
+        Err(GlobalError::KeypairNotEqual)?
+    }
     
     if !payer_account_info.is_signer || payer_account_info.key != &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
         Err(ProgramError::InvalidAccountData)?
-    }
+    } 
 
     let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
 
@@ -607,6 +636,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
 
     sales_account_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
 
+    create_all_loans_account(program_id, &[payer_account_info.clone(), all_loans_list_info.clone()])?;
     Ok(())
 }
 
@@ -666,39 +696,6 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     Ok(())
 }
 
-fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) -> ProgramResult{
-    let account_info_iter = &mut accounts.iter();
-    
-    let payer_account_info = next_account_info(account_info_iter)?;
-
-    if !payer_account_info.is_signer || payer_account_info.key !=  &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
-        Err(ProgramError::InvalidAccountData)?
-    }
-
-    for to_increase_by in 0..xp_claims.len(){
-
-        let mint_account_info = next_account_info(account_info_iter)?;
-        let associated_account_info = next_account_info(account_info_iter)?;
-        let governor_data_pda_info = next_account_info(account_info_iter)?;
-
-        let governor_data_pda_seed: &[&[u8]; 3] = &[
-            b"governor_data_pda",
-            &mint_account_info.key.to_bytes(),
-            &associated_account_info.key.to_bytes()
-        ];
-        let mut governor_pda_account_data: GovernorData = try_from_slice_unchecked(&governor_data_pda_info.data.borrow())?;
-        let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id);
-        if governor_data_pda_info.key != &governor_data_pda{
-            Err(ProgramError::InvalidAccountData)?
-        }
-
-        governor_pda_account_data.xp += to_increase_by as u32;
-        governor_pda_account_data.level = (0.01 * (governor_pda_account_data.xp as f32).powf(1.0/3.0)) as u8;
-        governor_pda_account_data.serialize(&mut &mut governor_data_pda_info.data.borrow_mut()[..])?;
-    }
-    Ok(())
-}
-
 
 fn freeze_gov(program_id:&Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
@@ -739,15 +736,328 @@ fn freeze_gov(program_id:&Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     )?;
     Ok(())
 }
+
+
+fn take_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_bump: u32) -> ProgramResult{
+    let account_info_iter = &mut accounts.iter();
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let mint_account_info = next_account_info(account_info_iter)?;
+    let sales_pda_info = next_account_info(account_info_iter)?;
+    let associated_account_info = next_account_info(account_info_iter)?;
+    let all_loans_list_info = next_account_info(account_info_iter)?;
+    let storage_pda_info = next_account_info(account_info_iter)?;
+    let storage_associated_account_info = next_account_info(account_info_iter)?;
+    let vault_pda_info = next_account_info(account_info_iter)?;
+    let governor_data_pda_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+    let system_account_info = next_account_info(account_info_iter)?;
+    let rent_account_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
+
+
+    let space: usize = 200;
+    let lamports = Rent::get()?.minimum_balance(space);
+
+    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
+
+    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
+
+    if &sales_pda != sales_pda_info.key{
+        msg!("Sales pdas do not match");
+        Err(ProgramError::InvalidAccountData)?
+    }
+    let sales_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
+    if amount > (0.7*sales_data.vault_total as f64 *10e9 as f64/sales_data.counter as f64) as u64{
+        msg!("requested borrow ammount exceeds 70% of the average backing per governor");
+        Err(GlobalError::TooMuchRequestedAmount)?
+    }
+
+
+    let (all_loans_pda, _all_loans_pda_bump) = Pubkey::find_program_address(&[b"All Governor Loans"], program_id);
+
+    if all_loans_pda != *all_loans_list_info.key{
+        msg!("All Loans Pdas are not matching");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    create_all_loans_account(program_id, &[payer_account_info.clone(), all_loans_list_info.clone()])?;
+
+    let mut all_loans: AllLoans = try_from_slice_unchecked(&all_loans_list_info.data.borrow())?;
+
+
+    let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    // Getting timestamp
+    let current_timestamp = clock.unix_timestamp as u32;
+
+    let gov_associated_key = get_associated_token_address(payer_account_info.key, mint_account_info.key);
+
+    if *associated_account_info.key != gov_associated_key{
+        msg!("Associated account keypairs for governor don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+
+    let governor_data_pda_seed: &[&[u8]; 2] = &[
+        b"governor_data_pda",
+        &mint_account_info.key.to_bytes(),
+    ];
+    let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, program_id); 
+    if governor_data_pda_info.key != &governor_data_pda{
+        msg!("Governor data pads do not match");
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let _: GovernorData = try_from_slice_unchecked(&governor_data_pda_info.data.borrow())?; //Confirming that the Mint account provided is actually a governor.
+
+    invoke(
+        &create_associated_token_account(
+            payer_account_info.key,
+            storage_pda_info.key,
+            mint_account_info.key,
+        ),
+        &[
+            payer_account_info.clone(),
+            storage_associated_account_info.clone(),
+            storage_pda_info.clone(),
+            mint_account_info.clone(),
+            system_account_info.clone(),
+            token_program_info.clone(),
+            rent_account_info.clone(),
+        ],
+    )?;
+    
+
+
+    invoke(
+        &transfer(
+            token_program_info.key,
+            associated_account_info.key,
+            storage_associated_account_info.key,
+            payer_account_info.key,
+            &[],
+            1
+        )?,
+        &[
+            associated_account_info.clone(),
+            storage_associated_account_info.clone(),
+            payer_account_info.clone(),
+        ]
+    )?;
+
+
+    let (vault, vault_bump) = Pubkey::find_program_address(&[b"Governor_Vault"], program_id);
+    if vault != *vault_pda_info.key {
+        msg!("Vault pda's don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+
+    let (storage_pda, storage_pda_bump) = Pubkey::find_program_address(&[b"Loan_Storage", &payer_account_info.key.to_bytes(), &storage_bump.to_be_bytes()], program_id);
+    if storage_pda != *storage_pda_info.key {
+        msg!("Storage pda's don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    let storage_pda_associated = get_associated_token_address(&storage_pda, mint_account_info.key);
+    if storage_pda_associated != *storage_associated_account_info.key{
+        msg!("Storage pda assicated keys don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    msg!("about to transfer: {:?}", amount);
+    invoke_signed(
+        &system_instruction::transfer(&vault, payer_account_info.key, amount as u64),
+        &[vault_pda_info.clone(), payer_account_info.clone()],
+        &[&[b"Governor_Vault", &[vault_bump]]]
+    )?;
+
+    invoke_signed(
+        &system_instruction::create_account(
+            payer_account_info.key,
+            &storage_pda,
+            lamports,
+            space as u64,
+            program_id
+        ),
+        &[payer_account_info.clone(), storage_pda_info.clone()],
+        &[&[b"Loan_Storage",  &payer_account_info.key.to_bytes(), &storage_bump.to_be_bytes(), &[storage_pda_bump]]]
+    )?;
+
+    let mut payments= Vec::new();
+    payments.push(Payment{
+        amount: 0,
+        time: current_timestamp
+    });
+
+    let loan = Loan{
+        mint: mint_account_info.key.to_bytes(),
+        initial_amount: amount,
+        amount_left: amount,
+        payments: payments,
+        monthly_interest_numerator: 1,
+        monthly_interest_denominator: 100,
+        initial_loan_date: current_timestamp,
+        last_pay_date: current_timestamp,
+        is_loan_active: true
+    };
+    all_loans.all_loans.push(LoanLoc{payer: payer_account_info.key.to_bytes(), bump: storage_bump});
+    all_loans.serialize(&mut &mut all_loans_list_info.data.borrow_mut()[..])?;
+
+    loan.serialize(&mut &mut storage_pda_info.data.borrow_mut()[..])?;
+
+    
+
+    Ok(())
+
+}
+
+fn create_all_loans_account(program_id: &Pubkey, accounts: &[AccountInfo])-> ProgramResult{
+    let account_info_iter = &mut accounts.iter();
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let all_loans_list_info = next_account_info(account_info_iter)?;
+    
+
+
+    let space: usize = 10000;
+    let lamports = Rent::get()?.minimum_balance(space);
+
+    let (all_loans_pda, all_loans_pda_bump) = Pubkey::find_program_address(&[b"All Governor Loans"], program_id);
+
+    if all_loans_pda != *all_loans_list_info.key{
+        msg!("All Loans Pdas are not matching");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+
+    invoke_signed(
+        &system_instruction::create_account(
+            payer_account_info.key,
+            &all_loans_list_info.key,
+            lamports,
+            space as u64,
+            program_id
+        ),
+        &[payer_account_info.clone(), all_loans_list_info.clone()],
+        &[&[b"All Governor Loans", &[all_loans_pda_bump]]]
+    )?;
+
+    let all_loans = AllLoans{
+        all_loans : Vec::new(),
+    };
+
+    all_loans.serialize(&mut &mut all_loans_list_info.data.borrow_mut()[..])?;
+    Ok(())
+
+}
+
+fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_bump: u32) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let associated_account_info = next_account_info(account_info_iter)?;
+    let all_loans_list_info = next_account_info(account_info_iter)?;
+    let storage_pda_info = next_account_info(account_info_iter)?;
+    let storage_associated_account_info = next_account_info(account_info_iter)?;
+    let vault_pda_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
+
+    let token_program_info = next_account_info(account_info_iter)?;
+    // let system_account_info = next_account_info(account_info_iter)?;
+    // let rent_account_info = next_account_info(account_info_iter)?;
+
+    let (all_loans_pda, _all_loans_pda_bump) = Pubkey::find_program_address(&[b"All Governor Loans"], program_id);
+
+    if all_loans_pda != *all_loans_list_info.key{
+        msg!("All Loans Pdas are not matching");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    let mut all_loans: AllLoans = try_from_slice_unchecked(&all_loans_list_info.data.borrow())?;
+    let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    // Getting timestamp
+    let current_timestamp = clock.unix_timestamp as u32;
+
+    let (storage_pda, storage_pda_bump) = Pubkey::find_program_address(&[b"Loan_Storage", &payer_account_info.key.to_bytes(), &storage_bump.to_be_bytes()], program_id);
+    if storage_pda != *storage_pda_info.key {
+        msg!("Storage pda's don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    let mut loan: Loan = try_from_slice_unchecked(&storage_pda_info.data.borrow())?;
+
+    let gov_associated_key = get_associated_token_address(payer_account_info.key, &Pubkey::new(&loan.mint));
+
+    if *associated_account_info.key != gov_associated_key{
+        msg!("Associated account keypairs for governor don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+
+    
+    let (vault, _vault_bump) = Pubkey::find_program_address(&[b"Governor_Vault"], program_id);
+    if vault != *vault_pda_info.key {
+        msg!("Vault pda's don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    let storage_pda_associated = get_associated_token_address(&storage_pda, &Pubkey::new(&loan.mint));
+    if storage_pda_associated != *storage_associated_account_info.key{
+        msg!("Storage pda assicated keys don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    
+    if amount < ((loan.monthly_interest_numerator as f64/ loan.monthly_interest_denominator as f64) * loan.amount_left as f64) as u64{
+        msg!("Amount attempting to pay with is too miniscule, compared to minimum accepted");
+        Err(GlobalError::AmountTooSmall)?
+    }
+
+    if current_timestamp - loan.last_pay_date > 2_592_000{
+        msg!("Loan was already defaulted or already paid for completeley");
+        Err(GlobalError::LoanPaymentError)?
+    }
+    invoke( 
+        &system_instruction::transfer(payer_account_info.key, &vault_pda_info.key, amount as u64),
+        &[payer_account_info.clone(), vault_pda_info.clone()]
+    )?;
+
+    let mut ch_time = loan.initial_loan_date;
+    let mut amount_to_sub = amount;
+    while ch_time + 2_592_000 < current_timestamp{
+        ch_time += 2_592_000;
+    }
+
+    if loan.last_pay_date <= ch_time{
+            amount_to_sub = amount - ((loan.monthly_interest_numerator as f64 / loan.monthly_interest_denominator as f64) * loan.amount_left as f64 ) as u64;
+    }
+    if amount_to_sub as f32 > loan.amount_left as f32 *1.0005 {
+        msg!("Ammount attempted to pay is exhorbitantly large");
+        Err(GlobalError::ExhorbitantAmount)?
+    }
+    let leftamount= loan.amount_left as i64 - amount_to_sub as i64;
+    loan.amount_left -= amount_to_sub;
+    
+
+    if leftamount <= 0 {
+        all_loans.all_loans.remove(all_loans.all_loans.iter().position(|x| x.payer == payer_account_info.key.to_bytes() && x.bump == storage_bump).expect("Not so good popping element out of all_loans"));
+
+        invoke_signed(
+            &transfer(token_program_info.key, storage_associated_account_info.key, associated_account_info.key, storage_pda_info.key, &[], 1)?,
+            &[storage_associated_account_info.clone(), associated_account_info.clone(), storage_pda_info.clone()],
+            &[&[b"Loan_Storage", &payer_account_info.key.to_bytes(), &storage_bump.to_be_bytes(), &[storage_pda_bump]]]
+        )?;
+        loan.is_loan_active = false;
+
+    }
+
+    loan.payments.push(Payment{amount: amount, time: current_timestamp});
+
+    loan.serialize(&mut &mut storage_pda_info.data.borrow_mut()[..])?;
+    all_loans.serialize(&mut &mut all_loans_list_info.data.borrow_mut()[..])?;
+
+
+    Ok(())
+}
 pub fn process_instructions(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
 
-        // if program_id != &governor_id::id(){
-        //     Err(ProgramError::IncorrectProgramId)?
-        // }
+        if program_id != &global_repo::governor::id(){
+            Err(ProgramError::IncorrectProgramId)?
+        }
         let instruction = InstructionEnum::decode(instruction_data)?;
         match instruction {
             InstructionEnum::MintNft =>{
@@ -756,11 +1066,10 @@ pub fn process_instructions(
             InstructionEnum::UnlockMint => {
                 unlock_account(program_id, accounts)
             }   
-            InstructionEnum::ClaimXp{xp_claims} =>{
-                claim_xp(program_id, accounts, xp_claims)
-            }
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
             InstructionEnum::FreezeGov => {freeze_gov(program_id, accounts)}
+            InstructionEnum::TakeLoan {amount, storage_bump } => {take_loan(program_id, accounts, amount, storage_bump)},
+            InstructionEnum::PayLoan {amount, storage_bump} => {pay_loan(program_id, accounts, amount, storage_bump)},
         }
 }
 

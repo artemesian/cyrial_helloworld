@@ -1,5 +1,5 @@
 // use solana_program::{
-//     declare_id,
+//     pubkey::Pubkey,
 // };
 use borsh::{BorshDeserialize, BorshSerialize};
 use error::GlobalError;
@@ -84,6 +84,10 @@ impl StructId{
 
 pub mod governor{
     solana_program::declare_id!("GWJQHiudaVnhBmvCkRmMPeWs2rffhG2fmkXVRJHM9t5s");
+
+    pub mod vault{
+       solana_program::declare_id!("4eeqV9wkdBYJyVopZiTkUoH5XE7JpYJfavZ4NkKbvWW6");
+    }
 }
 
 pub mod vault{
