@@ -32,5 +32,5 @@ name = "governor"
 crate-type = ["cdylib","lib"]   
 
 [package.metadata.x]
-build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../Governor/deploy/keypair.json ../Governor/target/deploy/Governor.so"
-build-deploy = "cargo build-bpf && solana program deploy ../Governor/target/deploy/Governor.so"
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../governor/deploy/keypair.json ../governor/target/deploy/governor.so"
+build-deploy = "cargo build-bpf && solana program deploy ../governor/target/deploy/governor.so"

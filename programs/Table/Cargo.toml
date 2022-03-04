@@ -31,5 +31,5 @@ crate-type = ["cdylib","lib"]
 
 [package.metadata.x]
 
-build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../Table/deploy/keypair.json ../Table/target/deploy/Table.so"
-build-deploy = "cargo build-bpf && solana program deploy /Table/target/deploy/Table.so"
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../table/deploy/keypair.json ../table/target/deploy/table.so"
+build-deploy = "cargo build-bpf && solana program deploy /table/target/deploy/table.so"

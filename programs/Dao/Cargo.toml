@@ -19,5 +19,5 @@ name = "dao"
 crate-type = ["cdylib","lib"]   
 
 [package.metadata.x]
-build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../Dao/deploy/keypair.json ../Dao/target/deploy/Dao.so"
-build-deploy = "cargo build-bpf && solana program deploy ../Dao/target/deploy/Dao.so"
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../dao/deploy/keypair.json ../dao/target/deploy/dao.so"
+build-deploy = "cargo build-bpf && solana program deploy ../dao/target/deploy/dao.so"

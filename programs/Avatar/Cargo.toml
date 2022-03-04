@@ -33,5 +33,5 @@ crate-type = ["cdylib","lib"]
 
 [package.metadata.x]
 
-build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../Avatar/deploy/keypair.json ../Avatar/target/deploy/Avatar.so"
-build-deploy = "cargo build-bpf && solana program deploy ../Avatar/target/deploy/avatar.so"
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../avatar/deploy/keypair.json ../avatar/target/deploy/avatar.so"
+build-deploy = "cargo build-bpf && solana program deploy ../avatar/target/deploy/avatar.so"
