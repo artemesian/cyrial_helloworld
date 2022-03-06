@@ -57,7 +57,7 @@ struct AllLoans{
 }
 #[derive(BorshSerialize, BorshDeserialize, Copy, Clone)]
 pub struct GovernorSales{
-    pub vault_total: f32,
+    pub vault_total: u64,
     pub counter: u32,
 }
 
@@ -89,98 +89,48 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
          Some(rar) => {
             ind = ind - (ind % 1000);
              match rar{
-                 7 =>{689}
-                 6 =>{435}
-                 5 =>{610}
-                 4 =>{555}
-                 3 =>{50}
-                 2 =>{850}
+                //  7 =>{689}
+                //  6 =>{435}
+                //  5 =>{610}
+                //  4 =>{555}
+                //  3 =>{50}
+                //  2 =>{850}
                  _ => {700}
              }
          }
          None => {ind % 1000}
     };
-    //Champion
-    if new_ind == 689{
-        let governors = ["https://arweave.net/9PpWTTi7HtqsaqVA3Xj3HSSOgZmSd6Xp8LtIIJGpXZQ",
-        "https://arweave.net/HrwBGdAvm7JNcwtELnFcKpASzOxpM6DiabXNhwzhIvo",
-        "https://arweave.net/jMS9hTVfVDzZTLmjK4b9wMlU5IvaKkaIq4rkWd8v6tI",
-        "https://arweave.net/hW1v0aRSgyiLSf3T-g-KrVy149vnLxRogzW1OKhJ9M4"];
+    //Unseen
+    if new_ind >= 689 && new_ind < 672{// 0.3%
+        let governors = ["https://arweave.net/Q-I6v_z3MjL877Czaljgk7pz5iRXbtgApW-o0RqYrWg"];
         (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 7)
     }
-    //Proffesional
-    else if new_ind >= 432 && new_ind <442 {
-        let governors = ["https://arweave.net/d7SkjEvOnrnjd70VJolcYH9wPHvKlCnHbK-cELj80ns",
-        "https://arweave.net/P0KnKMBd1HDEiuusImQyCZvXxMPIeTwnxAhpUKak-dU",
-        "https://arweave.net/L4RT2S0lMfpCb-VSgcxgQf2_d_yQtLcd7LPG69ktZ7Y",
-        "https://arweave.net/XbcADvU4mVYA16uQ9ntgT5mqeBReReEGB0gBlfQcGt0",
-        "https://arweave.net/o_RA3BIqkCfVJBDk2BoUinTVKzn7kp1sd66HhmNDxus",
-        "https://arweave.net/dfqYLcfA-IfAm5kwxe9r4FY7t4GjI3tQ5qp71PF5NUI"];
+    //Exalted
+    else if new_ind >= 432 && new_ind <442 { // 1.0%
+        let governors = ["https://arweave.net/_RM4x73TluNcMCIx8mrI9PopQeQkBfsEjX-rrujwFvg"];
 
         (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 6)
     }
-    //Rookie
-    else if new_ind >= 600 && new_ind < 634{
-        let governors =  ["https://arweave.net/--IWT_ar1dmtaD59TmuEtxpzo78dA1CtB0Rw4NQImgY",
-        "https://arweave.net/OgLLqseURKEhpnG2pemY8-GABb02Sv3-bd-Z-zSCU6E",
-        "https://arweave.net/1Cg372-PuRnC3NpQPkU_S2mwQ1cA5c0INw6iGjh6qm8",
-        "https://arweave.net/QuLsWewEBafc1vgj81CCqXM9RHWThNLpdYlF69f7n4s",
-        "https://arweave.net/JXB0E8Y2qibfWnBH2a46Nr6tWDjoUXQw94lp8nIF8Go",
-        "https://arweave.net/BG_y-_b9Wf9cWqPbiqq8a29HTyzF7ZkzQoU2WoZt2uE"];
-
-        (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 5)
-    }
-    //Amature
-    else if new_ind >= 545 && new_ind < 600{
-        let governors =["https://arweave.net/aHxrUZhvlBlwKl5fS0R7xeVb7cSiUO2DrjtkymGZmYA",
-        "https://arweave.net/T61vjM7QnPX_1xF2pYeqXefzAeFN36CoJVWhAYpqOqQ",
-        "https://arweave.net/e37eKriHf96MTgTkQQf-MoqPqetJzgLxstLQqZKoDxE",
-        "https://arweave.net/plH8N9Y-hlR0wZBreKvoGrWebOfNrsfGEqLf2N8QSsE",
-        "https://arweave.net/O3v3x7bDzmmoegsOJD-0PaXZZp5nYaDErjQ16LMOrm8",
-        "https://arweave.net/EY8tIfzsjz2GVKgojuYw5aD6993TsETZN_2ybkZVdak"];
+    //Epic
+    else if new_ind >= 550 && new_ind < 600{//5.0%
+        let governors =["https://arweave.net/eP77-xr2Nq6DrpcEXFo-1Oo6dFPTRsyKVczjm0rMlbY"];
 
         (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 4)
     }
-    //Local
-    else if new_ind < 100{
-        let governors =  ["https://arweave.net/s6BsAVvf6ghtUKt1H8eoirE-yZBPvBjqN3Wyguyc1e8",
-        "https://arweave.net/b7qTQMMzzBPmCKFPYb930axSH-EmZ-nGg3AROB-QZQA",
-        "https://arweave.net/PF361VjEBHx81b9CTxZfnCO2XNJ3L3caGIQj9DyuDrg",
-        "https://arweave.net/jUt_Epc5vFBsDfTHMIcuVybofVN8mbS9CpcmZD3fjHs",
-        "https://arweave.net/BKiGDPit3T1xVFZ2Wc1QLbTsfo2sTLcNokbqlx2Y-uY",
-        "https://arweave.net/HVzFwe4ZCEg_hEM4bkLsRC7FsLrwFfo_9PBb8Sy9J4Y",
-        "https://arweave.net/lbD_lTQjomJkvpTXZ6hiGWNkpsN0d2GUbst6zpmEdYs",
-        "https://arweave.net/c9I8MC-4T5zzGsLy5LJ-Hj3ocZ05KaafqMp5annaONM"];
+    //Rare
+    else if new_ind < 120{//12.0%
+        let governors =  ["https://arweave.net/QoNfFG8DY7jRFZXHGUXG-vqVJ30UknIf_vKWlSeLlYM"];
         (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 3)
     }
-    //Casual
-    else if new_ind > 800{
-        let governors = ["https://arweave.net/IxukmJfBlOuSepj2hdaqyTLmaTnDZXQnqJTs97qr-lA",
-        "https://arweave.net/vlb-F7-S-qdYmvXVpK4GExTp_obewqdA_yFUeSQ0I14",
-        "https://arweave.net/UN8cD_YeTYBj7qvxw6ehsTlen-LotD-tKmFLG54LGrU",
-        "https://arweave.net/jVYynpUgTQMqZJdYz2KRoJweDu_3kh-swyVmCbNoGVw",
-        "https://arweave.net/WRSuzjG5uWeItfBzGUwK7h12nlT_uYXnzEG8Tq7fg8M",
-        "https://arweave.net/PWrCyeV0KXCT1Q0fCZBA9DFhIErsT0vDK__WlpmMka8",
-        "https://arweave.net/TODSEFXy_znd-HQV2rXfPYTumscOXtShvVU2MeRcbI0",
-        "https://arweave.net/0mkC4YFF2SDckKNTSU2nqS9Xxa7DEhCodvqwhe8oh3o",
-        "https://arweave.net/4hhUOFtBpPHQrNRwkDJKpQpvW4wL5Dux5wjYd6v0SHs",
-        "https://arweave.net/YVBheCFbLPF3cksqZfYCWc0rReZDVLUS782ViWNk-tc",
-        "https://arweave.net/GvirKFNoGQ1PhCzkNyG5BDINVlnaZ9Nj7T_PPf6FbR8"];
+    //Uncommon
+    else if new_ind > 750{ //25.0%
+        let governors = ["https://arweave.net/71Bjq4M8mcTmntK5no8ve7yQyN1JBD5VBhAodYubcX0"];
 
         (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 2)
     }
-    //NewB
-    else {
-        let governors = ["https://arweave.net/x_6w07Fdw-AD48dS4BRbXyQQtWKm9nzQS10zqBeLGV8",
-        "https://arweave.net/z7IuHYAz1vmY6aN3e9aDpYK3QP31muhP_C5L7-4o-4c",
-        "https://arweave.net/uV_No3g8qVOoTEKCoIPUvdQRvZjapZ7ryC7PKkDtoSQ",
-        "https://arweave.net/OD9qv9iHThs9qU_S7HIrWo7vxjMxOl6OkVbiq2CWq0o",
-        "https://arweave.net/t6W1W_FIUqon4qPT1srhINpbEZXeIgnc5k1HyVe4aA4",
-        "https://arweave.net/HqedV5z0wI0boB1EgERV3x-9LeZqOFB8E6qRY7AarKk",
-        "https://arweave.net/t3FEIA2ciOXEPCtojae_e9IiEiR6-urIq2agK5AHOYA",
-        "https://arweave.net/EFa2XB5NSWedSEdcVu_UMO6vEZP5mEikBqfJoRHdI0I",
-        "https://arweave.net/KRNDxr6O8YQremLzPLeut7Cv5sLNozov0Qa5BgZuTdM",
-        "https://arweave.net/c2cmZycexv1xAfyMIn0j1uu6CMmnEQ0KSgoIZphQBOw"];
+    //Common
+    else { // 57.7%
+        let governors = ["https://arweave.net/pmASLjixcfT6YRjdbwuCBJJwT0cmiQqxHyq0kZVrlSs"];
         (governors[((ind -new_ind) as f32 / 1000.0) as usize % governors.len()], 1)
     }
 
@@ -188,9 +138,7 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
 
 
 fn get_price(sales_account_data:GovernorSales) -> u64{
-    let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
-
-    (unitary  * (i32::pow(10,9) as f32)) as u64
+    (sales_account_data.vault_total as f64 * 1.25 / sales_account_data.counter as f64) as u64
 }
 
 fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Option<u8>) -> ProgramResult{
@@ -291,7 +239,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // msg!("{:?}",&sales_pda_info.data);
     let mut sales_account_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
     // let mut sales_account_data = Sales{vault_total:1.0, counter: 1};
-    let unitary = sales_account_data.vault_total * 1.25 / sales_account_data.counter as f32;
+    let unitary = (sales_account_data.vault_total as f64 * 1.25 / sales_account_data.counter as f64) as u64;
 
     let price = get_price(sales_account_data);
 
@@ -304,7 +252,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     // let rent = Rent::from_account_info(rent_account_info)?;
     msg!("Hello_0");
     invoke(
-        &system_instruction::transfer(&payer_account_info.key, &vault.key, price as u64),
+        &system_instruction::transfer(&payer_account_info.key, &vault.key, price),
         &[payer_account_info.clone(), vault.clone()],
     )?;
     // msg!(
@@ -391,7 +339,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 
     let mut creators = Vec::new();
     creators.push(Creator{address: *mint_authority_info.key, verified: true, share: 0});
-    creators.push(Creator{address: *vault.key, verified:false, share:100});
+    creators.push(Creator{address: *vault.key, verified: false, share:100});
 
     let mut ves: [u8; 10] = [0;10];
     let mut mult = current_timestamp as f32;
@@ -420,6 +368,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     if *metadata_pda_info.key != metadata_pda{
         Err(ProgramError::InvalidAccountData)?
     }
+
     msg!("Hello_C_3");
     invoke_signed(
         &instruction::create_metadata_accounts(id(), *metadata_pda_info.key, *mint_account_info.key, *mint_authority_info.key, *payer_account_info.key, *mint_authority_info.key, "DSOL Governor".to_string(), "DSOLG".to_string(), selected_uri.to_string(), Some(creators), 500, true, true),
@@ -635,7 +584,7 @@ fn create_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> Progr
 
 
     let sales_account_data = GovernorSales{
-        vault_total : 1.0,
+        vault_total : 1e9 as u64,
         counter :  1
     };
 
@@ -773,7 +722,7 @@ fn take_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage
         Err(ProgramError::InvalidAccountData)?
     }
     let sales_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
-    if amount > (0.7e9*sales_data.vault_total as f64 /sales_data.counter as f64) as u64{
+    if amount > (0.7*sales_data.vault_total as f64 /sales_data.counter as f64) as u64{
         msg!("requested borrow ammount exceeds 70% of the average backing per governor");
         Err(GlobalError::TooMuchRequestedAmount)?
     }
@@ -960,11 +909,22 @@ fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_
     let storage_associated_account_info = next_account_info(account_info_iter)?;
     let vault_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
+    let sales_pda_info = next_account_info(account_info_iter)?;
 
     let token_program_info = next_account_info(account_info_iter)?;
     // let system_account_info = next_account_info(account_info_iter)?;
     // let rent_account_info = next_account_info(account_info_iter)?;
 
+
+    let sales_pda_seeds = &[b"sales_pda", &program_id.to_bytes() as &[u8]];
+
+    let (sales_pda, _sales_pda_bump) = Pubkey::find_program_address(sales_pda_seeds, program_id);
+
+    if &sales_pda != sales_pda_info.key{
+        msg!("Sales pdas do not match");
+        Err(ProgramError::InvalidAccountData)?
+    }
+    let mut sales_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
     let (all_loans_pda, _all_loans_pda_bump) = Pubkey::find_program_address(&[b"All Governor Loans"], program_id);
 
     if all_loans_pda != *all_loans_list_info.key{
@@ -1023,6 +983,7 @@ fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_
     }
     let mut multiplier = 1.0;
     if loan.last_pay_date <= ch_time{
+            sales_data.vault_total += ((loan.monthly_interest_numerator as f64 / loan.monthly_interest_denominator as f64) * loan.amount_left as f64 ) as u64;
             amount_to_sub = amount - ((loan.monthly_interest_numerator as f64 / loan.monthly_interest_denominator as f64) * loan.amount_left as f64 ) as u64;
             multiplier += (loan.monthly_interest_numerator as f64 + 0.15)/ loan.monthly_interest_denominator as f64;
     }
@@ -1052,6 +1013,7 @@ fn pay_loan(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, storage_
 
     loan.serialize(&mut &mut storage_pda_info.data.borrow_mut()[..])?;
     all_loans.serialize(&mut &mut all_loans_list_info.data.borrow_mut()[..])?;
+    sales_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
 
 
     Ok(())
@@ -1103,8 +1065,8 @@ fn borrow_more(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, stora
     }
     let sales_data: GovernorSales = try_from_slice_unchecked(&sales_pda_info.data.borrow())?;
 
-    if amount + loan.amount_left > (0.7e9*sales_data.vault_total as f64/sales_data.counter as f64) as u64{
-        msg!("Attempting to borrow more than allowable threashold of 70% of average Governor Backing <-----> total: {:?}, <---> {:?}", amount + loan.amount_left, (0.7e9*sales_data.vault_total as f64/sales_data.counter as f64));
+    if amount + loan.amount_left > (0.7*sales_data.vault_total as f64/sales_data.counter as f64) as u64{
+        msg!("Attempting to borrow more than allowable threashold of 70% of average Governor Backing <-----> total: {:?}, <---> {:?}", amount + loan.amount_left, (0.7*sales_data.vault_total as f64/sales_data.counter as f64));
         Err(GlobalError::TooMuchRequestedAmount)?
     }
 

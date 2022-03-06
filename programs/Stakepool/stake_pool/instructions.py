@@ -36,29 +36,6 @@ class FundingType(IntEnum):
     SOL_WITHDRAW = 2
     """Sets the SOL withdraw authority."""
 
-
-class InitializeParams(NamedTuple):
-    """Initialize token mint transaction params."""
-
-    # Accounts
-    program_id: PublicKey
-    """SPL Stake Pool program account."""
-    stake_pool: PublicKey
-    """[w] Stake Pool account to initialize."""
-    manager: PublicKey
-    """[s] Manager for new stake pool."""
-    staker: PublicKey
-    """[] Staker for the new stake pool."""
-    withdraw_authority: PublicKey
-    """[] Withdraw authority for the new stake pool."""
-    validator_list: PublicKey
-    """[w] Uninitialized validator list account for the new stake pool."""
-    reserve_stake: PublicKey
-    """[] Reserve stake account."""
-    pool_mint: PublicKey
-    """[w] Pool token mint account."""
-    manager_fee_account: PublicKey
-    """[w] Manager's fee account"""
     token_program_id: PublicKey
     """[] SPL Token program id."""
 
