@@ -37,8 +37,10 @@ pub enum GlobalError {
     ExhorbitantAmount,
 
     #[error("No longer Active")]
-    NoLongerActive
+    NoLongerActive,
 
+    #[error("Already in use")]
+    AlreadyInUse,
 }
 
 impl From<GlobalError> for ProgramError {

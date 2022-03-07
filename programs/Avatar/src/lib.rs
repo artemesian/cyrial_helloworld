@@ -124,85 +124,85 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
     };
     //Champion
     if new_ind == 689{
-        let avatars = ["https://arweave.net/9PpWTTi7HtqsaqVA3Xj3HSSOgZmSd6Xp8LtIIJGpXZQ",
-        "https://arweave.net/HrwBGdAvm7JNcwtELnFcKpASzOxpM6DiabXNhwzhIvo",
-        "https://arweave.net/jMS9hTVfVDzZTLmjK4b9wMlU5IvaKkaIq4rkWd8v6tI",
-        "https://arweave.net/hW1v0aRSgyiLSf3T-g-KrVy149vnLxRogzW1OKhJ9M4"];
+        let avatars = ["https://arweave.net/CpOk7NBU-vVD7s7N22YXoy0ffAHc-Nwj8FfLIViloiM",
+        "https://arweave.net/cpyhC6SqEndUMbkjSeNQjCaOfWq8d-TSmwSOqyXymUo",
+        "https://arweave.net/5baiHqdtLBT7gvQ3JIcG-_WpcQwpKAvzdnj_Z-Oxp0M",
+        "https://arweave.net/fYLI-txokijyB-NGunyyAU1AopJ6Yu7WX27Fyq8_2nk"];
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 7)
     }
     //Proffesional
     else if new_ind >= 432 && new_ind <442 {
-        let avatars = ["https://arweave.net/d7SkjEvOnrnjd70VJolcYH9wPHvKlCnHbK-cELj80ns",
-        "https://arweave.net/P0KnKMBd1HDEiuusImQyCZvXxMPIeTwnxAhpUKak-dU",
-        "https://arweave.net/L4RT2S0lMfpCb-VSgcxgQf2_d_yQtLcd7LPG69ktZ7Y",
-        "https://arweave.net/XbcADvU4mVYA16uQ9ntgT5mqeBReReEGB0gBlfQcGt0",
-        "https://arweave.net/o_RA3BIqkCfVJBDk2BoUinTVKzn7kp1sd66HhmNDxus",
-        "https://arweave.net/dfqYLcfA-IfAm5kwxe9r4FY7t4GjI3tQ5qp71PF5NUI"];
+        let avatars = ["https://arweave.net/fam42-BK6-2nHDae8pmMjNfadAkfkho42wCMoSBz0qk",
+        "https://arweave.net/ZAMbpgOnhCx9obof3k9BMBzrkr1HUhYLPda7nauQ_Hs",
+        "https://arweave.net/mROVz6TzmfcSqmRvKLpL13Ah6yBvA__KezKcYKuNFYk",
+        "https://arweave.net/sroYNtmTLb-RuVQItBwxpJqAiAg-sgCss4hugja6KzE",
+        "https://arweave.net/8eE6TanBXmhHbE3iOlqaZGKHBy56TWoI8oydX6TtFXg",
+        "https://arweave.net/Oi8-7P55WXMNS-h5sjrAlUbZk7P97_2wnGszjRCZBgc"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 6)
     }
     //Rookie
     else if new_ind >= 600 && new_ind < 634{
-        let avatars =  ["https://arweave.net/--IWT_ar1dmtaD59TmuEtxpzo78dA1CtB0Rw4NQImgY",
-        "https://arweave.net/OgLLqseURKEhpnG2pemY8-GABb02Sv3-bd-Z-zSCU6E",
-        "https://arweave.net/1Cg372-PuRnC3NpQPkU_S2mwQ1cA5c0INw6iGjh6qm8",
-        "https://arweave.net/QuLsWewEBafc1vgj81CCqXM9RHWThNLpdYlF69f7n4s",
-        "https://arweave.net/JXB0E8Y2qibfWnBH2a46Nr6tWDjoUXQw94lp8nIF8Go",
-        "https://arweave.net/BG_y-_b9Wf9cWqPbiqq8a29HTyzF7ZkzQoU2WoZt2uE"];
+        let avatars =  ["https://arweave.net/En6u1uvuUKMb7O1PsQ1uVBHsKshfYToKnV2kzBxx3Nw",
+        "https://arweave.net/IG4Tts3nwGQVwt21-xDC68lrqV6OVuKl26mOzF-28KQ",
+        "https://arweave.net/FxNFpy32GkEUkafbp3vkNKbTD8Ml29RT1wrWxXbiWl4",
+        "https://arweave.net/3XKEMHH7Re34hxYUED_GB9OAvvwb55LThPrGf9eHj9s",
+        "https://arweave.net/Z5erD_E1IzvoZOjF6GjVTdD6lDOUAO3OVRSDxFz7g6s",
+        "https://arweave.net/vHTgd0Eq8_Z_WgfDr9YpM2ydEcr0wnOOurN79zMVEIE"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 5)
     }
     //Amature
     else if new_ind >= 545 && new_ind < 600{
-        let avatars =["https://arweave.net/aHxrUZhvlBlwKl5fS0R7xeVb7cSiUO2DrjtkymGZmYA",
-        "https://arweave.net/T61vjM7QnPX_1xF2pYeqXefzAeFN36CoJVWhAYpqOqQ",
-        "https://arweave.net/e37eKriHf96MTgTkQQf-MoqPqetJzgLxstLQqZKoDxE",
-        "https://arweave.net/plH8N9Y-hlR0wZBreKvoGrWebOfNrsfGEqLf2N8QSsE",
-        "https://arweave.net/O3v3x7bDzmmoegsOJD-0PaXZZp5nYaDErjQ16LMOrm8",
-        "https://arweave.net/EY8tIfzsjz2GVKgojuYw5aD6993TsETZN_2ybkZVdak"];
+        let avatars = ["https://arweave.net/jRwtQXRNLRvAdvrauKpIr5scKrVgagiAIxJmC7qwfpo",
+        "https://arweave.net/GtP4R5B8mA7BFI6ppJ8Tc-kZ95S8zvrNkLfyIJl5heI",
+        "https://arweave.net/xtOWPQoKXZyCdVUO9lNiLRoW44FtteLG_N7cCjlGakI",
+        "https://arweave.net/a_RH-sD3REJ-luuXyIDPuFlF_TU_pEzR3gqqwxn65Bo",
+        "https://arweave.net/6NtxDqBBD5La9VWgNS3A3cAvlR_XjB5z8WLX_Q0sBNg",
+        "https://arweave.net/dScwfDBgy9ewYgHlXnZazdXFq7vsq5yCES9FZBIdU34"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 4)
     }
     //Local
     else if new_ind < 100{
-        let avatars =  ["https://arweave.net/s6BsAVvf6ghtUKt1H8eoirE-yZBPvBjqN3Wyguyc1e8",
-        "https://arweave.net/b7qTQMMzzBPmCKFPYb930axSH-EmZ-nGg3AROB-QZQA",
-        "https://arweave.net/PF361VjEBHx81b9CTxZfnCO2XNJ3L3caGIQj9DyuDrg",
-        "https://arweave.net/jUt_Epc5vFBsDfTHMIcuVybofVN8mbS9CpcmZD3fjHs",
-        "https://arweave.net/BKiGDPit3T1xVFZ2Wc1QLbTsfo2sTLcNokbqlx2Y-uY",
-        "https://arweave.net/HVzFwe4ZCEg_hEM4bkLsRC7FsLrwFfo_9PBb8Sy9J4Y",
-        "https://arweave.net/lbD_lTQjomJkvpTXZ6hiGWNkpsN0d2GUbst6zpmEdYs",
-        "https://arweave.net/c9I8MC-4T5zzGsLy5LJ-Hj3ocZ05KaafqMp5annaONM"];
+        let avatars =  ["https://arweave.net/qdHHVXSaIK43drpqGN_wuDO_wEgNUsJZlD8ydU6VWbc",
+        "https://arweave.net/BRglhPUDSTB24o3rPduGryxMR5J-pLfUn8doL05uLew",
+        "https://arweave.net/-XKATnahjrFaOcloYuWQEKw-qGrlXMuzD3gMkQVEwX8",
+        "https://arweave.net/N44KoBYpikDkjHLPPT_boeBbGGJEKQCJ8CzbX-UXwOY",
+        "https://arweave.net/JU8051m8_JA7RRhVFlm1wGTZTTEZGuG-kZ2eoP-GFvg",
+        "https://arweave.net/izdjtPhSRLcIMvX7avLzEvAh9hlHSGRKduKLK2AECPA",
+        "https://arweave.net/GnJyP3iJ1sxuefwwAb9IxIRSC8libLpz0gAhCBSNyok",
+        "https://arweave.net/qCefeYgtKNWVZtf_2ClK2uivc9gG-y9PUXrgl_8VLjE"];
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 3)
     }
     //Casual
     else if new_ind > 800{
-        let avatars = ["https://arweave.net/IxukmJfBlOuSepj2hdaqyTLmaTnDZXQnqJTs97qr-lA",
-        "https://arweave.net/vlb-F7-S-qdYmvXVpK4GExTp_obewqdA_yFUeSQ0I14",
-        "https://arweave.net/UN8cD_YeTYBj7qvxw6ehsTlen-LotD-tKmFLG54LGrU",
-        "https://arweave.net/jVYynpUgTQMqZJdYz2KRoJweDu_3kh-swyVmCbNoGVw",
-        "https://arweave.net/WRSuzjG5uWeItfBzGUwK7h12nlT_uYXnzEG8Tq7fg8M",
-        "https://arweave.net/PWrCyeV0KXCT1Q0fCZBA9DFhIErsT0vDK__WlpmMka8",
-        "https://arweave.net/TODSEFXy_znd-HQV2rXfPYTumscOXtShvVU2MeRcbI0",
-        "https://arweave.net/0mkC4YFF2SDckKNTSU2nqS9Xxa7DEhCodvqwhe8oh3o",
-        "https://arweave.net/4hhUOFtBpPHQrNRwkDJKpQpvW4wL5Dux5wjYd6v0SHs",
-        "https://arweave.net/YVBheCFbLPF3cksqZfYCWc0rReZDVLUS782ViWNk-tc",
-        "https://arweave.net/GvirKFNoGQ1PhCzkNyG5BDINVlnaZ9Nj7T_PPf6FbR8"];
+        let avatars = ["https://arweave.net/Q5jiXKJj1ZX5TYd0ejVvigel-7nn9lxOEKRnpKyPOqg",
+        "https://arweave.net/JT0lmgcDDthb80zTdUUvYUWsbqyFD2g38H5qph5NNJk",
+        "https://arweave.net/EfwciEqcBWWuKtVbcBkRv1m2I_OjDH3Y7JB9NHL8Tis",
+        "https://arweave.net/PGLy6MQg7e-OPYXroyErUB7V_WVc0PRbbl2qOi2tcIQ",
+        "https://arweave.net/zPkM8RaQzkB90cv5c71753l4uvQs-M26gZBhZ-gzGDo",
+        "https://arweave.net/JmtpPhfsbJnJsMUfBVCOlIzb-DtnUztH7jVfz2hQTjI",
+        "https://arweave.net/DmWG6IcgIQs7yKJvPCbGgzm5y7So3_2wpPKyudRo_Jo",
+        "https://arweave.net/YonliitZdSEA53-7nuQHp2rneV4ABxH4qRPzq1wHwt4",
+        "https://arweave.net/-cDJDLjPtBItePemfMeNTsfY6LOBfEC3iUE_ViBM1_Q",
+        "https://arweave.net/qxlvXbN_GVRzYST6FhT5gsECrFYhpcLHxA4dE58qT-Y",
+        "https://arweave.net/RU7fyjhQY8edZUTMnKsTLa0mEgUj_IndReooZB82GcI"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 2)
     }
     //NewB
     else {
-        let avatars = ["https://arweave.net/x_6w07Fdw-AD48dS4BRbXyQQtWKm9nzQS10zqBeLGV8",
-        "https://arweave.net/z7IuHYAz1vmY6aN3e9aDpYK3QP31muhP_C5L7-4o-4c",
-        "https://arweave.net/uV_No3g8qVOoTEKCoIPUvdQRvZjapZ7ryC7PKkDtoSQ",
-        "https://arweave.net/OD9qv9iHThs9qU_S7HIrWo7vxjMxOl6OkVbiq2CWq0o",
-        "https://arweave.net/t6W1W_FIUqon4qPT1srhINpbEZXeIgnc5k1HyVe4aA4",
-        "https://arweave.net/HqedV5z0wI0boB1EgERV3x-9LeZqOFB8E6qRY7AarKk",
-        "https://arweave.net/t3FEIA2ciOXEPCtojae_e9IiEiR6-urIq2agK5AHOYA",
-        "https://arweave.net/EFa2XB5NSWedSEdcVu_UMO6vEZP5mEikBqfJoRHdI0I",
-        "https://arweave.net/KRNDxr6O8YQremLzPLeut7Cv5sLNozov0Qa5BgZuTdM",
-        "https://arweave.net/c2cmZycexv1xAfyMIn0j1uu6CMmnEQ0KSgoIZphQBOw"];
+        let avatars = ["https://arweave.net/Nb-LohzpiLB_XwZwWaV1G1V5khZfSWVVcvK8K1klebU",
+        "https://arweave.net/WimminaDHDBBxHby2dzbXTMomy2UYTLDf4ymCCQLtP4",
+        "https://arweave.net/LPywYfhL0swv1kxNpuSHv39XXbwEUPKHY7nUU0_LEPg",
+        "https://arweave.net/vnyXTcWsTbYamqGHeX8HLBMFWbtwFFUXf1PExMg_Z84",
+        "https://arweave.net/xhCy0q2nJIMY9ZCe4LVUjM6Ttmq-e4ZPebjWMtjQ6aw",
+        "https://arweave.net/IZdLsGVNL-pmbcALgszEhMcRqT5iXY63KwIXvScfdhc",
+        "https://arweave.net/9TfUNj4qsggB4vzeDSqtzd49Lpzux-5X8VJedSuiIvs",
+        "https://arweave.net/kls1o1PDJXapqrk8cz-PIzN2OA2T9bPdZUiupX-pARg",
+        "https://arweave.net/DNSzlCGMpJsKL83a5QNYktyj_aPUQkITNms7mLKbAiU",
+        "https://arweave.net/yeFoixkyf6_Zg9fV-1LGWW11HtNS1o0-orBjPZm7ZnI"];
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 1)
     }
 

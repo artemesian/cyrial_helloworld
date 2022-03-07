@@ -33,6 +33,10 @@ struct Payment{
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
+struct ProposalLockGovernor{
+    time: u32,
+} 
+#[derive(BorshSerialize, BorshDeserialize)]
 struct Loan{
     mint: [u8;32],
     initial_amount: u64,
@@ -246,7 +250,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
     msg!("Current timestamp: {:?}", current_timestamp);
     let locked_time = lock_time(sales_account_data.counter as f32);
     msg!("Locked time: {:?}", locked_time);
-    let unlockable_date: u32 = current_timestamp + 0;
+    let unlockable_date: u32 = current_timestamp + locked_time;
 
 
     // let rent = Rent::from_account_info(rent_account_info)?;
@@ -525,7 +529,8 @@ impl InstructionEnum{
             4 => {
                 let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 1e9) as u64;
             Ok(Self::PayLoan{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
-            5 => {Ok(Self::FreezeGov)}
+            5 => {
+                Ok(Self::FreezeGov)}
             6 => {
                 let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 1e9) as u64;
                 msg!("Total before multiplication: {:?} <---> Num_Cnt_1: {:?}, <---> Num_Cnt_2 {:?}", total, get_num_cnt(&data[1..4]) as f32 , get_num_cnt(&data[4..7]));
@@ -660,6 +665,8 @@ fn freeze_gov(program_id:&Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let associated_account_info = next_account_info(account_info_iter)?;
     let mint_account_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
+    let governor_data_pda_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
 
     let (authorizer_pda, _authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], &global_repo::table::id());
     if &authorizer_pda != authorizer_info.key || !authorizer_info.is_signer {
@@ -688,6 +695,29 @@ fn freeze_gov(program_id:&Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
         &[signers_seeds],
 
     )?;
+
+    let mut governor_data: GovernorData = try_from_slice_unchecked(&governor_data_pda_info.data.borrow())?;
+    msg!("Reached checkpoint 2");
+    let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    // Getting timestamp
+    let current_timestamp = clock.unix_timestamp as u32;
+    let proposal_lock_governor = ProposalLockGovernor{
+        time: (5.0 * 30.44 * 86400.0) as u32,
+    };
+
+    let governor_data_pda_seed: &[&[u8]; 2] = &[
+        b"governor_data_pda",
+        &mint_account_info.key.to_bytes(),
+    ];
+    let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, &global_repo::governor::id()); 
+    if governor_data_pda_info.key != &governor_data_pda{
+        msg!("Governor pdas don't match");
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    governor_data.unlockable_date = current_timestamp + proposal_lock_governor.time;
+    governor_data.serialize(&mut &mut governor_data_pda_info.data.borrow_mut()[..])?;
+
     Ok(())
 }
 

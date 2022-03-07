@@ -70,10 +70,6 @@ struct TableData{
 struct ProposalNumGovernors{
     num_of_governors: u8,
 } 
-#[derive(BorshSerialize, BorshDeserialize)]
-struct ProposalLockGovernor{
-    time: u32,
-} 
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct GovernorData{
@@ -130,85 +126,48 @@ fn select_uri<'life>(mut ind: u32, rarity:Option<u8>) -> (&'life str, u8) {
     };
     //Champion
     if new_ind == 689{
-        let avatars = ["https://arweave.net/9PpWTTi7HtqsaqVA3Xj3HSSOgZmSd6Xp8LtIIJGpXZQ",
-        "https://arweave.net/HrwBGdAvm7JNcwtELnFcKpASzOxpM6DiabXNhwzhIvo",
-        "https://arweave.net/jMS9hTVfVDzZTLmjK4b9wMlU5IvaKkaIq4rkWd8v6tI",
-        "https://arweave.net/hW1v0aRSgyiLSf3T-g-KrVy149vnLxRogzW1OKhJ9M4"];
+        let avatars = ["https://arweave.net/0fCXS86DvoNFASdXOPa3OFOymWJTkKg14G7Os3sJgp8",
+        "https://arweave.net/2m1FqBBggLB1cy-2naeeELht4hO_T-akci24noTicNM"];
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 7)
     }
     //Proffesional
     else if new_ind >= 432 && new_ind <442 {
-        let avatars = ["https://arweave.net/d7SkjEvOnrnjd70VJolcYH9wPHvKlCnHbK-cELj80ns",
-        "https://arweave.net/P0KnKMBd1HDEiuusImQyCZvXxMPIeTwnxAhpUKak-dU",
-        "https://arweave.net/L4RT2S0lMfpCb-VSgcxgQf2_d_yQtLcd7LPG69ktZ7Y",
-        "https://arweave.net/XbcADvU4mVYA16uQ9ntgT5mqeBReReEGB0gBlfQcGt0",
-        "https://arweave.net/o_RA3BIqkCfVJBDk2BoUinTVKzn7kp1sd66HhmNDxus",
-        "https://arweave.net/dfqYLcfA-IfAm5kwxe9r4FY7t4GjI3tQ5qp71PF5NUI"];
+        let avatars = ["https://arweave.net/kMwApMdt-FoFFEXYJVGWmGuRbeMoTDodk9RQzFN1HFI",
+        "https://arweave.net/wklmb-n0P-wx39hEmxb23AKQnvXjgHu_lJKmoqtJTFs"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 6)
     }
     //Rookie
     else if new_ind >= 600 && new_ind < 634{
-        let avatars =  ["https://arweave.net/--IWT_ar1dmtaD59TmuEtxpzo78dA1CtB0Rw4NQImgY",
-        "https://arweave.net/OgLLqseURKEhpnG2pemY8-GABb02Sv3-bd-Z-zSCU6E",
-        "https://arweave.net/1Cg372-PuRnC3NpQPkU_S2mwQ1cA5c0INw6iGjh6qm8",
-        "https://arweave.net/QuLsWewEBafc1vgj81CCqXM9RHWThNLpdYlF69f7n4s",
-        "https://arweave.net/JXB0E8Y2qibfWnBH2a46Nr6tWDjoUXQw94lp8nIF8Go",
-        "https://arweave.net/BG_y-_b9Wf9cWqPbiqq8a29HTyzF7ZkzQoU2WoZt2uE"];
+        let avatars =  ["https://arweave.net/q9rR6ZHMrzMHO0Kv9Wq5rSbxJvYSTGNbL_fqvNSHTeQ",
+        "https://arweave.net/kTqoJq23E7nAngm8riHWaGLsdM9VVhPNeXTq6Bt9qQA"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 5)
     }
     //Amature
     else if new_ind >= 545 && new_ind < 600{
-        let avatars =["https://arweave.net/aHxrUZhvlBlwKl5fS0R7xeVb7cSiUO2DrjtkymGZmYA",
-        "https://arweave.net/T61vjM7QnPX_1xF2pYeqXefzAeFN36CoJVWhAYpqOqQ",
-        "https://arweave.net/e37eKriHf96MTgTkQQf-MoqPqetJzgLxstLQqZKoDxE",
-        "https://arweave.net/plH8N9Y-hlR0wZBreKvoGrWebOfNrsfGEqLf2N8QSsE",
-        "https://arweave.net/O3v3x7bDzmmoegsOJD-0PaXZZp5nYaDErjQ16LMOrm8",
-        "https://arweave.net/EY8tIfzsjz2GVKgojuYw5aD6993TsETZN_2ybkZVdak"];
+        let avatars = ["https://arweave.net/Qi89jPp77DyS8KAiJfmKvKeFyyUu29WBuivonhjMShY",
+        "https://arweave.net/xDcIl1B3W4Lz7GbgHwAoCywD40YacGcKLK7rWOPjluw"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 4)
     }
     //Local
     else if new_ind < 100{
-        let avatars =  ["https://arweave.net/s6BsAVvf6ghtUKt1H8eoirE-yZBPvBjqN3Wyguyc1e8",
-        "https://arweave.net/b7qTQMMzzBPmCKFPYb930axSH-EmZ-nGg3AROB-QZQA",
-        "https://arweave.net/PF361VjEBHx81b9CTxZfnCO2XNJ3L3caGIQj9DyuDrg",
-        "https://arweave.net/jUt_Epc5vFBsDfTHMIcuVybofVN8mbS9CpcmZD3fjHs",
-        "https://arweave.net/BKiGDPit3T1xVFZ2Wc1QLbTsfo2sTLcNokbqlx2Y-uY",
-        "https://arweave.net/HVzFwe4ZCEg_hEM4bkLsRC7FsLrwFfo_9PBb8Sy9J4Y",
-        "https://arweave.net/lbD_lTQjomJkvpTXZ6hiGWNkpsN0d2GUbst6zpmEdYs",
-        "https://arweave.net/c9I8MC-4T5zzGsLy5LJ-Hj3ocZ05KaafqMp5annaONM"];
+        let avatars =   ["https://arweave.net/p0I9YH6rX28iy7sG-nfatq8YYxOzd__QVR2p1VN7Vkg",
+        "https://arweave.net/VlenC49KBHJsrN-5Ee7YbemD8hVSo5WoaRW2Wzp85fQ"];
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 3)
     }
     //Casual
     else if new_ind > 800{
-        let avatars = ["https://arweave.net/IxukmJfBlOuSepj2hdaqyTLmaTnDZXQnqJTs97qr-lA",
-        "https://arweave.net/vlb-F7-S-qdYmvXVpK4GExTp_obewqdA_yFUeSQ0I14",
-        "https://arweave.net/UN8cD_YeTYBj7qvxw6ehsTlen-LotD-tKmFLG54LGrU",
-        "https://arweave.net/jVYynpUgTQMqZJdYz2KRoJweDu_3kh-swyVmCbNoGVw",
-        "https://arweave.net/WRSuzjG5uWeItfBzGUwK7h12nlT_uYXnzEG8Tq7fg8M",
-        "https://arweave.net/PWrCyeV0KXCT1Q0fCZBA9DFhIErsT0vDK__WlpmMka8",
-        "https://arweave.net/TODSEFXy_znd-HQV2rXfPYTumscOXtShvVU2MeRcbI0",
-        "https://arweave.net/0mkC4YFF2SDckKNTSU2nqS9Xxa7DEhCodvqwhe8oh3o",
-        "https://arweave.net/4hhUOFtBpPHQrNRwkDJKpQpvW4wL5Dux5wjYd6v0SHs",
-        "https://arweave.net/YVBheCFbLPF3cksqZfYCWc0rReZDVLUS782ViWNk-tc",
-        "https://arweave.net/GvirKFNoGQ1PhCzkNyG5BDINVlnaZ9Nj7T_PPf6FbR8"];
+        let avatars = ["https://arweave.net/YaSNwhE_3muWsiZD03S-N108uMPWk6vKGE6Zga4eTl8",
+        "https://arweave.net/4f3YwKviHx2lAeliRiqjhcojh1iYTKHXHgO0Yu_MeeM"];
 
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 2)
     }
     //NewB
     else {
-        let avatars = ["https://arweave.net/x_6w07Fdw-AD48dS4BRbXyQQtWKm9nzQS10zqBeLGV8",
-        "https://arweave.net/z7IuHYAz1vmY6aN3e9aDpYK3QP31muhP_C5L7-4o-4c",
-        "https://arweave.net/uV_No3g8qVOoTEKCoIPUvdQRvZjapZ7ryC7PKkDtoSQ",
-        "https://arweave.net/OD9qv9iHThs9qU_S7HIrWo7vxjMxOl6OkVbiq2CWq0o",
-        "https://arweave.net/t6W1W_FIUqon4qPT1srhINpbEZXeIgnc5k1HyVe4aA4",
-        "https://arweave.net/HqedV5z0wI0boB1EgERV3x-9LeZqOFB8E6qRY7AarKk",
-        "https://arweave.net/t3FEIA2ciOXEPCtojae_e9IiEiR6-urIq2agK5AHOYA",
-        "https://arweave.net/EFa2XB5NSWedSEdcVu_UMO6vEZP5mEikBqfJoRHdI0I",
-        "https://arweave.net/KRNDxr6O8YQremLzPLeut7Cv5sLNozov0Qa5BgZuTdM",
-        "https://arweave.net/c2cmZycexv1xAfyMIn0j1uu6CMmnEQ0KSgoIZphQBOw"];
+        let avatars = ["https://arweave.net/29vohlNlaok-GwFvg9L7kT2erOoB7nkCCIsAtTgmCuk",
+        "https://arweave.net/ZCAFDtXBYk8cSWg4bDUaf3dDXrxMrZfD8CC9SPc6LDg"];
         (avatars[((ind -new_ind) as f32 / 1000.0) as usize % avatars.len()], 1)
     }
 
@@ -506,6 +465,15 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
 
     let (pending_tables_pda, _pending_tables_bump) = Pubkey::find_program_address(&[b"pending_tables"], program_id);
 
+    let mut pending_tables: PendingTables = try_from_slice_unchecked(&pending_tables_pda_info.data.borrow())?;
+    let any_error:bool;
+    match pending_tables.tables.iter().position(|x| x.payer_pubkey == payer_account_info.key.to_bytes() && x.payer_bump == payer_bump){
+        Some(_) => {any_error = true;}
+        _ => {any_error = false;}
+    }
+    if any_error {
+        Err(GlobalError::AlreadyInUse)?
+    }
 
     if *pending_tables_pda_info.key != pending_tables_pda {
         msg!("Pending tables pdas don't match");
@@ -664,7 +632,6 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
     sales_account_data.vault_total += unitary;
     sales_account_data.counter += 1; 
 
-    let mut pending_tables: PendingTables = try_from_slice_unchecked(&pending_tables_pda_info.data.borrow())?;
     pending_tables.tables.push(Tableloc{payer_bump:payer_bump, payer_pubkey: payer_account_info.key.to_bytes()});
 
     pending_tables.serialize(&mut &mut pending_tables_pda_info.data.borrow_mut()[..])?;
@@ -707,27 +674,9 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
 
     table_data_pda_data.creators.push(payer_governor_token_account_info.key.to_bytes());
 
-    let mut governor_data: GovernorData = try_from_slice_unchecked(&payer_governor_data_pda_info.data.borrow())?;
-    msg!("Reached checkpoint 2");
-    let clock = Clock::from_account_info(&sysvar_clock_info)?;
-    // Getting timestamp
-    let current_timestamp = clock.unix_timestamp as u32;
-    let proposal_lock_governor = ProposalLockGovernor{
-        time: 4 * 30 * 86400,
-    };
 
 
-    let governor_data_pda_seed: &[&[u8]; 2] = &[
-        b"governor_data_pda",
-        &governor_mint_account_info.key.to_bytes(),
-    ];
-    let (governor_data_pda, _governor_data_pda_bump) = Pubkey::find_program_address(governor_data_pda_seed, &governor::id()); 
-    if payer_governor_data_pda_info.key != &governor_data_pda{
-        msg!("Governor pdas don't match");
-        Err(ProgramError::InvalidAccountData)?
-    }
 
-    governor_data.unlockable_date = current_timestamp + proposal_lock_governor.time;
 
     let (authorizer_pda, authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], program_id);
     let authorizer_signers_seeds: &[&[u8]; 2] = &[b"authorizer_pda", &[authorizer_pda_bump]];
@@ -742,6 +691,8 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
             AccountMeta::new(*payer_governor_token_account_info.key, false),
             AccountMeta::new_readonly(*governor_mint_account_info.key, false),
             AccountMeta::new_readonly(*governor_mint_authority_info.key, false),
+            AccountMeta::new(*payer_governor_data_pda_info.key, false),
+            AccountMeta::new_readonly(*sysvar_clock_info.key, false)
         ];
 
     invoke_signed(
@@ -755,7 +706,9 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
             token_program_info.clone(),
             payer_governor_token_account_info.clone(),
             governor_mint_account_info.clone(),
-            governor_mint_authority_info.clone()
+            governor_mint_authority_info.clone(),
+            payer_governor_data_pda_info.clone(),
+            sysvar_clock_info.clone(),
         ],
         &[authorizer_signers_seeds],
 
@@ -1029,7 +982,7 @@ pub fn process_instructions(
         match instruction {
 
             InstructionEnum::InitTable{governor_reward, payer_bump} =>{
-                msg!("{:?}",(governor_reward, payer_bump));
+                // msg!("{:?}",(governor_reward, payer_bump));
                 init_mint(program_id, accounts, governor_reward, payer_bump)
             }
             InstructionEnum::SignTableMint => {
