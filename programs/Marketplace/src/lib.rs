@@ -32,7 +32,6 @@ enum TokenType{
 enum InstructionEnum{
     CreateCollection{token_type: TokenType},
     CreateLimitOrder{
-        current_bump: u32,
         price: u64,
     },
     CloseLimitOrder{current_bump: u32},
@@ -59,6 +58,7 @@ struct CollectionData{
 struct PayerCollection{
     address: [u8;32],
     all_listings: Vec<Listing>,
+    id: u32,
 }
 
 
@@ -87,14 +87,13 @@ impl InstructionEnum{
             }
             1 => {
                 let price = ((get_num_cnt(&data[1..4]) as f32  + (get_num_cnt(&data[4..7]) as f32) / 1000.0) * 10e9) as u64; // maximum price it can be listed is = 65286.5280
-                let current_bump = get_num_cnt(&data[7..10]);
 
                 if price as f64 > 65000.0 * 10e9{
                     msg!("Listing price is greater than tolerable");
                     Err(ProgramError::InvalidInstructionData)?
                 }
 
-                Self::CreateLimitOrder{current_bump: current_bump, price:price}
+                Self::CreateLimitOrder{price:price}
             }
             2 => {
                 //Send the token from the pda to the owner. Then send the token from the max_listed drawer into the current_pda, and decrementing max_listed value updating the data as needed
@@ -168,6 +167,7 @@ fn create_payer_collection(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let collection_data = PayerCollection{
         address: creator_account_info.key.to_bytes(),
         all_listings: Vec::new(),
+        id: 0,
     };
 
     collection_data.serialize(&mut &mut payer_collection_info.data.borrow_mut()[..])?;
@@ -175,7 +175,7 @@ fn create_payer_collection(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     Ok(())
 }
 
-fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u64, bump: u32) -> ProgramResult{
+fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u64) -> ProgramResult{
 
     let account_info_iter = &mut accounts.iter();
 
@@ -199,6 +199,7 @@ fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u64,
     }
 
     let mut payer_collection_data: PayerCollection = try_from_slice_unchecked(&payer_collection_info.data.borrow())?;
+    let bump = payer_collection_data.id;
 
     let mut collection_data: CollectionData = try_from_slice_unchecked(&collection_pda_info.data.borrow())?;
 
@@ -209,7 +210,6 @@ fn create_limit_order(program_id: &Pubkey, accounts: &[AccountInfo], price: u64,
         msg!("container info pdas do not match");
         Err(GlobalError::KeypairNotEqual)?
     }
-
     let space = 200;
     let lamports = Rent::get()?.minimum_balance(space as usize);
     invoke_signed(
@@ -482,8 +482,8 @@ fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instructi
         InstructionEnum::CreateCollection{token_type} => {
            create_collection(program_id, accounts, token_type)?
         }
-        InstructionEnum::CreateLimitOrder{current_bump, price} => {
-            create_limit_order(program_id, accounts, price, current_bump)?
+        InstructionEnum::CreateLimitOrder{price} => {
+            create_limit_order(program_id, accounts, price)?
         }
         InstructionEnum::CloseLimitOrder{current_bump} => {
             close_limit_order(program_id, accounts, current_bump)?

@@ -88,6 +88,7 @@ impl InstructionEnum {
                 let proposal =  String::from(std::str::from_utf8(&data[1..proposal_len+1]).expect("data conversion or proposal to str failed"));
                 let choices = String::from(std::str::from_utf8(&data[proposal_len+ 1 .. proposal_len + 1 + 5*choice_len]).expect("data conversion of choice {i} failed"));
                 let duration = get_num_cnt(&data[proposal_len + 1 + 5*choice_len .. proposal_len + 1 + 5*choice_len + 3]) as u64 * 86400;
+                msg!("Logging right before return of enum decoding on instruction 1");
                 Ok(Self::CreateProposal{proposal, choices, duration})}
             2 => {
                 let vote_enum:[u8;5] = array_ref!(data[1..6], 0,5).clone();
@@ -101,6 +102,7 @@ impl InstructionEnum {
 }
 
 fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: String, choices: String, duration: u64) -> ProgramResult{
+    // msg!("logging beginning of create_proposal");
     let account_info_iter = &mut accounts.iter();
     
     let payer_account_info = next_account_info(account_info_iter)?;
@@ -114,7 +116,7 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     let current_timestamp = clock.unix_timestamp as u64;
     
-
+    // msg!("right before proposals deserialization");
     let mut proposals: Proposals = try_from_slice_unchecked(&proposals_info.data.borrow())?;
     let (proposal_pda, proposal_pda_bump) = Pubkey::find_program_address(&[b"Dsol_Dao_Governance", &proposals.proposal_id.to_be_bytes(), ], program_id);
     // msg!("\nPROPOSAL_PDA: {:?}:             PROPOSAL_ID: {:?}\n", proposal_pda, proposals.proposal_id.to_be_bytes());
@@ -129,7 +131,9 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
         msg!("metadata pdas do not match");
         Err(ProgramError::InvalidAccountData)?
     }
+    // msg!("right before metadata fetch");
     let metadata = Metadata::from_account_info(metadata_account_info)?;
+    // msg!("right before metadata check");
     let mut found = false;
     match metadata.data.creators{
         Some(creators) =>{
@@ -152,19 +156,19 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
         }
         None => {msg!("Cannot Certify Authenticity of this NFT"); Err(ProgramError::InvalidAccountData)?}
     }
-
+    // msg!("right after metadata check");
     let associated_token_address =  get_associated_token_address(payer_account_info.key, governor_account_info.key);
 
     if associated_token_address != *governor_associated_info.key{
         msg!("associated token address do not match");
         Err(ProgramError::InvalidAccountData)?
     }
-
+    // msg!("right before fetching governor associated token account data balance");
     if Account::unpack(&governor_associated_info.data.borrow())?.amount != 1{
         msg!(" governor associated token account balance is not equal to: 1");
         Err(ProgramError::Custom(1))?
     }
-
+    // msg!("log right after checking associated account data balance");
     let proposal_struct = Proposal{
         proposal_pda: proposal_pda.to_bytes(),
         proposal: proposal,
@@ -179,7 +183,7 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
 
     let space = 10000;
     let lamports = Rent::get()?.minimum_balance(space as usize);
-    msg!("Where are we");
+    // msg!("Where are we");
     invoke_signed(
         &system_instruction::create_account(
             payer_account_info.key,
@@ -191,7 +195,7 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
         &[payer_account_info.clone(), proposal_pda_info.clone()],
         &[ &[b"Dsol_Dao_Governance", &proposals.proposal_id.to_be_bytes(), &[proposal_pda_bump]] ]
     )?;
-    msg!("Reached here too");
+    // msg!("Reached here too");
     proposal_struct.serialize(&mut &mut proposal_pda_info.data.borrow_mut()[..])?;
 
     proposals.proposal_id += 1;
