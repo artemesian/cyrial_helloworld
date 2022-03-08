@@ -105,7 +105,7 @@ pub mod avatar{
     solana_program::declare_id!("ASV3UahwSK3oRmNkkbyhFNSRSaccL2jJvAYCYQa8RSgG");
 }
 pub mod dao{
-    solana_program::declare_id!("DrSryh4M2nYyRSqgDNMiASK73LSoZrN56oHWXaAcnmCt");
+    solana_program::declare_id!("7y8RbM8qx3V4Hnwj8fmkd1H96e8xeVsAQQ9zc5WYRsCF");
 }
 
 pub mod dsol{
