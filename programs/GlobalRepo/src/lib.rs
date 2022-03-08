@@ -83,10 +83,17 @@ impl StructId{
 
 
 pub mod governor{
+    use solana_program::pubkey::Pubkey;
+
     solana_program::declare_id!("8Ga7yNCYJiJ6HLTZMu14iNh6una9AGZvuM4n9napx1v3");
 
     pub mod vault{
        solana_program::declare_id!("25N4Q6k5PPFmeqAco84y7UuM1w9bNmyJdssoJLJ9GqXv");
+    }
+
+    pub fn creator() -> Pubkey {
+        let (mint_authority_pda, _mint_authority_bump) = Pubkey::find_program_address(&[b"mint_authority"], &id());
+        mint_authority_pda
     }
 }
 

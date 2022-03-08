@@ -12,6 +12,8 @@ use solana_program::{
     system_instruction, borsh::try_from_slice_unchecked, clock::Clock, sysvar::Sysvar, program::invoke_signed, rent::Rent, program_pack::Pack,
 };
 
+extern crate global_repo;
+// use global_repo::error::GlobalError;
 
 
 use spl_associated_token_account::{get_associated_token_address};
@@ -27,13 +29,6 @@ enum InstructionEnum{
     ProcessResult
 }
 
-mod governor_creator{
-    solana_program::declare_id!("5t2z1VJ66uKM2TKyxbPW3kyGFaXptHPh2NEYdGhTbQ8s");
-}
-
-mod program{
-    solana_program::declare_id!("DrSryh4M2nYyRSqgDNMiASK73LSoZrN56oHWXaAcnmCt");
-}
 // #[derive(BorshSerialize, BorshDeserialize)]
 // // struct Choice{
 // //     proposal_pda: [u8;32],
@@ -85,7 +80,7 @@ fn get_num_cnt(arr: &[u8]) -> u32 {
 
 impl InstructionEnum {
     fn decode(data: &[u8]) -> Result<Self, ProgramError>{
-        msg!("\nDATA_0: {:?}\n", data[0]);
+        // msg!("\nDATA_0: {:?}\n", data[0]);
         match data[0]{
             1 => {
                 let proposal_len = 500;
@@ -118,27 +113,28 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
     
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     let current_timestamp = clock.unix_timestamp as u64;
-
+    
 
     let mut proposals: Proposals = try_from_slice_unchecked(&proposals_info.data.borrow())?;
     let (proposal_pda, proposal_pda_bump) = Pubkey::find_program_address(&[b"Dsol_Dao_Governance", &proposals.proposal_id.to_be_bytes(), ], program_id);
-    msg!("\nPROPOSAL_PDA: {:?}:             PROPOSAL_ID: {:?}\n", proposal_pda, proposals.proposal_id.to_be_bytes());
+    // msg!("\nPROPOSAL_PDA: {:?}:             PROPOSAL_ID: {:?}\n", proposal_pda, proposals.proposal_id.to_be_bytes());
     if *proposal_pda_info.key != proposal_pda{
+        msg!("proposal pdas do not match");
         Err(ProgramError::InvalidAccountData)?
     }
 
     let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &governor_account_info.key.to_bytes()], &id());
 
     if *metadata_account_info.key != metadata_pda{
+        msg!("metadata pdas do not match");
         Err(ProgramError::InvalidAccountData)?
     }
-
     let metadata = Metadata::from_account_info(metadata_account_info)?;
     let mut found = false;
     match metadata.data.creators{
         Some(creators) =>{
             for creator in creators.iter(){
-                if creator.address == governor_creator::id(){
+                if creator.address == global_repo::governor::creator(){
                     if creator.verified{
                         found = true;
                         break;
@@ -151,7 +147,6 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
             }
             if !found{
             msg!("NFT, Wrong Creator in Account Sent");
-            msg!("");
             Err(ProgramError::InvalidAccountData)?
             }
         }
@@ -161,10 +156,12 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
     let associated_token_address =  get_associated_token_address(payer_account_info.key, governor_account_info.key);
 
     if associated_token_address != *governor_associated_info.key{
+        msg!("associated token address do not match");
         Err(ProgramError::InvalidAccountData)?
     }
 
     if Account::unpack(&governor_associated_info.data.borrow())?.amount != 1{
+        msg!(" governor associated token account balance is not equal to: 1");
         Err(ProgramError::Custom(1))?
     }
 
@@ -182,7 +179,7 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
 
     let space = 10000;
     let lamports = Rent::get()?.minimum_balance(space as usize);
-
+    msg!("Where are we");
     invoke_signed(
         &system_instruction::create_account(
             payer_account_info.key,
@@ -194,7 +191,7 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
         &[payer_account_info.clone(), proposal_pda_info.clone()],
         &[ &[b"Dsol_Dao_Governance", &proposals.proposal_id.to_be_bytes(), &[proposal_pda_bump]] ]
     )?;
-
+    msg!("Reached here too");
     proposal_struct.serialize(&mut &mut proposal_pda_info.data.borrow_mut()[..])?;
 
     proposals.proposal_id += 1;
@@ -270,7 +267,7 @@ fn vote(program_id: &Pubkey, accounts: &[AccountInfo], vote:[u8; 5]) -> ProgramR
     match metadata.data.creators{
         Some(creators) =>{
             for creator in creators.iter(){
-                if creator.address == governor_creator::id(){
+                if creator.address == global_repo::governor::creator(){
                     if creator.verified{
                         found = true;
                         break;
@@ -375,7 +372,7 @@ fn process_result(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
 }
 
 fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult{
-    if program_id != &program::id(){Err(ProgramError::IncorrectProgramId)?}
+    // if program_id != &program::id(){Err(ProgramError::IncorrectProgramId)?}
     match InstructionEnum::decode(instruction_data)? {
         InstructionEnum::CreateProposal{proposal, choices, duration} => {create_proposal(program_id, accounts, proposal, choices, duration )}
         InstructionEnum::Vote{vote_enum} => {
