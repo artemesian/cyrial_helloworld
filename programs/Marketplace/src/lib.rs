@@ -62,8 +62,6 @@ struct PayerCollection{
 }
 
 
-
-
 #[derive(BorshSerialize, BorshDeserialize)]
 struct ContainerData{
     collection_address: [u8;32],

@@ -1,5 +1,6 @@
 use arrayref::array_ref;
 use borsh::{BorshDeserialize, BorshSerialize};
+use global_repo::error::GlobalError;
 use metaplex_token_metadata::{id, state::Metadata};
 use solana_program::{
     pubkey::Pubkey,
@@ -24,7 +25,7 @@ enum InstructionEnum{
         choices: String,
         duration: u64
     },
-    Vote{vote_enum:[u8;5]},
+    Vote{all_votes:Vec<[u8;5]>},
     CreateProposalsAccount,
     ProcessResult
 }
@@ -46,12 +47,6 @@ struct GovernorVote{
     proposal_pda: [u8;32],
     mint_id: [u8;32],
     choice_bumps: [u8;5]
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Clone)]
-struct GovernorsVote{
-    proposal_pda: [u8; 32],
-    vote_bump: u32
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
@@ -91,9 +86,12 @@ impl InstructionEnum {
                 msg!("Logging right before return of enum decoding on instruction 1");
                 Ok(Self::CreateProposal{proposal, choices, duration})}
             2 => {
-                let vote_enum:[u8;5] = array_ref!(data[1..6], 0,5).clone();
-
-                Ok(Self::Vote{vote_enum})}
+                let num_votes = data[1];
+                let mut all_votes: Vec<[u8;5]> = Vec::new();
+                for _ in 0..num_votes{
+                    all_votes.push(array_ref!(data[(2)..(7)], 0,5).clone());
+                }
+                Ok(Self::Vote{all_votes:all_votes})}
             3 => {Ok(Self::CreateProposalsAccount)}
             4 =>{Ok(Self::ProcessResult)}
             _ => {Err(ProgramError::InvalidInstructionData)}
@@ -206,104 +204,78 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
 }
 
 
-fn vote(program_id: &Pubkey, accounts: &[AccountInfo], vote:[u8; 5]) -> ProgramResult{
+fn vote(_program_id: &Pubkey, accounts: &[AccountInfo], all_votes:Vec<[u8; 5]>) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
-    msg!("D_SOL_DAO_LOF:   1");
+    //msg!("D_SOL_DAO_LOF:   1");
     let payer_account_info = next_account_info(account_info_iter)?;
-    let governor_account_info = next_account_info(account_info_iter)?;
-    // let vote_pda_info = next_account_info(account_info_iter)?;
     let proposal_pda_info = next_account_info(account_info_iter)?;
-    let governor_pda_info = next_account_info(account_info_iter)?;
-    // let sysvar_clock_info = next_account_info(account_info_iter)?;
-    let metadata_account_info = next_account_info(account_info_iter)?;
-    let governor_associated_info = next_account_info(account_info_iter)?;
 
-    // let (vote_pda, vote_pda_bump) = Pubkey::find_program_address(&[b"Dsol_Dao_Governance", &proposal_pda_info.key.to_bytes(), &vote_bump.to_be_bytes()], program_id);
-    // msg!("D_SOL_DAO_LOF:   2");
-    // if vote_pda != *vote_pda_info.key{
-    //     Err(ProgramError::InvalidAccountData)?
-    // }
-
-    let space = 100;
-    let lamports = Rent::get()?.minimum_balance(space as usize);
-    // msg!("D_SOL_DAO_LOF:   3");
-    // invoke_signed(
-    //     &system_instruction::create_account(payer_account_info.key, vote_pda_info.key, lamports, space, program_id),
-    //     &[payer_account_info.clone(), vote_pda_info.clone()],
-    //     &[&[b"Dsol_Dao_Governance", &proposal_pda_info.key.to_bytes(), &vote_bump.to_be_bytes(), &[vote_pda_bump]]]
-    // )?;
 
     let mut proposal: Proposal = try_from_slice_unchecked(&proposal_pda_info.data.borrow())?;
-    msg!("D_SOL_DAO_LOF:   4");
-    let (governor_pda, governor_pda_bump) = Pubkey::find_program_address(&[b"Dsol_Dao_Governance", &proposal_pda_info.key.to_bytes(), &governor_account_info.key.to_bytes()], program_id);
+    for vote in all_votes{
+        let governor_account_info = next_account_info(account_info_iter)?;
+        let metadata_account_info = next_account_info(account_info_iter)?;
+        let governor_associated_info = next_account_info(account_info_iter)?;
 
-    if governor_pda != *governor_pda_info.key{
-        Err(ProgramError::InvalidAccountData)?
-    }
-    msg!("D_SOL_DAO_LOF:   5");
-    invoke_signed(
-        &system_instruction::create_account(payer_account_info.key, governor_pda_info.key, lamports, space, program_id),
-        &[payer_account_info.clone(), governor_pda_info.clone()],
-        &[&[b"Dsol_Dao_Governance", &proposal_pda_info.key.to_bytes(), &governor_account_info.key.to_bytes(), &[governor_pda_bump]]]
-    )?;
-    msg!("D_SOL_DAO_LOF:   6");
-    let governor_vote= GovernorVote {
-        proposal_pda: proposal_pda_info.key.to_bytes(),
-        mint_id: governor_account_info.key.to_bytes(),
-        choice_bumps: vote,
-    };
-    msg!("D_SOL_DAO_LOF:   7");
-    let governors_vote = GovernorsVote{
-        proposal_pda: proposal_pda_info.key.to_bytes(),
-        vote_bump: proposal.max_vote_bump,
-    };
-    proposal.votes.push(governor_vote);
 
-    msg!("D_SOL_DAO_LOF:   8");
-    let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &governor_account_info.key.to_bytes()], &id());
 
-    if *metadata_account_info.key != metadata_pda{
-        Err(ProgramError::InvalidAccountData)?
-    }
-    msg!("D_SOL_DAO_LOF:   9");
-    let metadata = Metadata::from_account_info(metadata_account_info)?;
-    let mut found = false;
-    match metadata.data.creators{
-        Some(creators) =>{
-            for creator in creators.iter(){
-                if creator.address == global_repo::governor::creator(){
-                    if creator.verified{
-                        found = true;
-                        break;
-                    }
-                    else{
-                        msg!("NFT, Not signed by Creator");
-                        Err(ProgramError::InvalidAccountData)?
-                    }
-                }
-            }
-            if !found{
-                msg!("NFT, Wrong Creator in Account Sent");
-                msg!("");
-                Err(ProgramError::InvalidAccountData)?
-                }
+        //msg!("D_SOL_DAO_LOF:   6");
+        let governor_vote= GovernorVote {
+            proposal_pda: proposal_pda_info.key.to_bytes(),
+            mint_id: governor_account_info.key.to_bytes(),
+            choice_bumps: vote,
+        };
+        //msg!("D_SOL_DAO_LOF:   7");
+        proposal.votes.retain(|x| x.mint_id != governor_account_info.key.to_bytes());
+        proposal.votes.push(governor_vote);
+
+        //msg!("D_SOL_DAO_LOF:   8");
+        let (metadata_pda, _metadata_nonce) = Pubkey::find_program_address(&[b"metadata", &id().to_bytes(), &governor_account_info.key.to_bytes()], &id());
+
+        if *metadata_account_info.key != metadata_pda{
+            msg!("Wrong metadata account info");
+            Err(ProgramError::InvalidAccountData)?
         }
-        None => {msg!("Cannot Certify Authenticity of this NFT"); Err(ProgramError::InvalidAccountData)?}
-    }
-    msg!("D_SOL_DAO_LOF:   10");
-    let associated_token_address =  get_associated_token_address(payer_account_info.key, governor_account_info.key);
+        //msg!("D_SOL_DAO_LOF:   9");
+        let metadata = Metadata::from_account_info(metadata_account_info)?;
+        let mut found = false;
+        match metadata.data.creators{
+            Some(creators) =>{
+                for creator in creators.iter(){
+                    if creator.address == global_repo::governor::creator(){
+                        if creator.verified{
+                            found = true;
+                            break;
+                        }
+                        else{
+                            msg!("NFT, Not signed by Creator");
+                            Err(ProgramError::InvalidAccountData)?
+                        }
+                    }
+                }
+                if !found{
+                    msg!("NFT, Wrong Creator in Account Sent");
+                    Err(ProgramError::InvalidAccountData)?
+                    }
+            }
+            None => {msg!("Cannot Certify Authenticity of this NFT"); Err(ProgramError::InvalidAccountData)?}
+        }
+        //msg!("D_SOL_DAO_LOF:   10");
+        let associated_token_address =  get_associated_token_address(payer_account_info.key, governor_account_info.key);
 
-    if associated_token_address != *governor_associated_info.key{
-        Err(ProgramError::InvalidAccountData)?
-    }
+        if associated_token_address != *governor_associated_info.key{
+            msg!("Associated token addresses do not match");
+            Err(GlobalError::KeypairNotEqual)?
+        }
 
-    if Account::unpack(&governor_associated_info.data.borrow())?.amount != 1{
-        Err(ProgramError::Custom(1))?
+        if Account::unpack(&governor_associated_info.data.borrow())?.amount != 1{
+            msg!("Balance of governor not 1 in associated token account sent");
+            Err(ProgramError::Custom(1))?
+        }
+        proposal.max_vote_bump +=1;
+
     }
-    proposal.max_vote_bump +=1;
-    // governor_vote.serialize(&mut &mut vote_pda_info.data.borrow_mut()[..])?;
     proposal.serialize(&mut &mut proposal_pda_info.data.borrow_mut()[..])?;
-    governors_vote.serialize(&mut &mut governor_pda_info.data.borrow_mut()[..])?;
 
 
     Ok(())
@@ -379,8 +351,8 @@ fn process_instructions(program_id: &Pubkey, accounts: &[AccountInfo], instructi
     // if program_id != &program::id(){Err(ProgramError::IncorrectProgramId)?}
     match InstructionEnum::decode(instruction_data)? {
         InstructionEnum::CreateProposal{proposal, choices, duration} => {create_proposal(program_id, accounts, proposal, choices, duration )}
-        InstructionEnum::Vote{vote_enum} => {
-            vote(program_id, accounts, vote_enum)
+        InstructionEnum::Vote{all_votes} => {
+            vote(program_id, accounts, all_votes)
         }
         InstructionEnum::CreateProposalsAccount =>{
             create_proposals_account(program_id, accounts)
