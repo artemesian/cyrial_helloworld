@@ -3,9 +3,11 @@
 // };
 use borsh::{BorshDeserialize, BorshSerialize};
 use error::GlobalError;
+// use instruction_enums::TableInstructionEnum;
 // use solana_program::program_error::ProgramError;
 
 pub mod error;
+pub mod instruction_enums;
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub enum StructId{
@@ -101,6 +103,9 @@ pub mod vault{
     solana_program::declare_id!("G473EkeR5gowVn8CRwTSDop3zPwaNixwp62qi7nyVf4z");
 }
 
+pub mod lounge{
+    solana_program::declare_id!("53toELc2ZRKUQKcbCcpq3JfUxu6CamAfKWThxbHuiwCP");
+}
 pub mod avatar{
     solana_program::declare_id!("ASV3UahwSK3oRmNkkbyhFNSRSaccL2jJvAYCYQa8RSgG");
 }

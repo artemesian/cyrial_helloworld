@@ -1,0 +1,24 @@
+[package]
+name = "lounge"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+borsh = "0.9.1"
+borsh-derive = "0.9.1"
+solana-program = "1.9.6"
+# metaplex-token-metadata = { version = "0.0.1", features = ["no-entrypoint"]}
+spl-associated-token-account = { version = "1.0.3", features = ["no-entrypoint"]}
+spl-token = { version = "3.2.0", features = ["no-entrypoint"]}
+# arrayref = "0.3.6"
+global_repo = { path = "../GlobalRepo"}
+
+[lib]
+name = "lounge"
+crate-type = ["cdylib","lib"]   
+
+[package.metadata.x]
+build-deploy-address = "cargo build-bpf && solana program deploy --program-id ../Lounge/deploy/keypair.json ../Lounge/target/deploy/Lounge.so"
+build-deploy = "cargo build-bpf && solana program deploy ../Lounge/target/deploy/Lounge.so"

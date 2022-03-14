@@ -41,6 +41,9 @@ pub enum GlobalError {
 
     #[error("Already in use")]
     AlreadyInUse,
+
+    #[error("Signer not matching correct signature")]
+    InvalidSignature,
 }
 
 impl From<GlobalError> for ProgramError {

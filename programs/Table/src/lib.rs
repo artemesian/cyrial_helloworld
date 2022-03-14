@@ -25,6 +25,7 @@ extern crate global_repo;
 
 use global_repo::{
     governor, error::GlobalError,
+    instruction_enums::TableInstructionEnum
 };
 // use solana_sdk::{
 //     compute_budget::ComputeBudgetInstruction};
@@ -65,6 +66,7 @@ struct TableData{
     num_creators: u8,
     governor_reward: u32, 
     minted: bool,
+    is_on_lobby: bool,
 }
 #[derive(BorshSerialize, BorshDeserialize)]
 struct ProposalNumGovernors{
@@ -621,6 +623,7 @@ fn init_mint(program_id: &Pubkey, accounts: &[AccountInfo], governor_reward: u32
         num_creators: proposal_num_governors.num_of_governors,
         governor_reward: governor_reward,
         minted: false,
+        is_on_lobby: false
     };
 
     if governor_data.unlockable_date >= current_timestamp { //Confirming 
@@ -742,28 +745,7 @@ fn sign_table_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResu
 
     Ok(())
 }
-#[derive(Debug, BorshDeserialize)]
-enum InstructionEnum{
-    InitTable{governor_reward: u32, payer_bump: u32},
-    SignTableMint,
-    CreateTableSalesAccount,
-    BurnNFTs{rarity: u8},
-    MintTable{payer_bump: u32},
-}
 
-impl InstructionEnum{
-    fn decode(data: &[u8]) -> Result<Self, ProgramError>{
-        let instruction_des:InstructionEnum = try_from_slice_unchecked(data)?;
-        Ok(match instruction_des{
-            InstructionEnum::InitTable{governor_reward, payer_bump} => {Self::InitTable{governor_reward:governor_reward, payer_bump:payer_bump}}
-            InstructionEnum::SignTableMint => {Self::SignTableMint}
-            InstructionEnum::CreateTableSalesAccount => {Self::CreateTableSalesAccount}
-            InstructionEnum::BurnNFTs{rarity} => {Self::BurnNFTs{rarity:rarity}}
-            InstructionEnum::MintTable{payer_bump} => {Self::MintTable{payer_bump:payer_bump}}
-            // _ => {Err(ProgramError::InvalidInstructionData)}
-        })
-    }
-}
 
 fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) -> ProgramResult{
 
@@ -901,6 +883,116 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
     Ok(())
 }
 
+
+fn lock_table(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
+    msg!("lock_table called");
+
+    let account_info_iter = &mut accounts.iter();
+
+    // let payer_account_info = next_account_info(account_info_iter)?;
+    let authorizer_account_info = next_account_info(account_info_iter)?;
+    let table_mint_account_info = next_account_info(account_info_iter)?;
+    let table_mint_authority_info = next_account_info(account_info_iter)?;
+    let table_mint_associated_account_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+    let table_data_pda_info = next_account_info(account_info_iter)?;
+
+    
+    msg!("before table_data desec: <---> {:?}", table_data_pda_info.key);
+    let mut table_data: TableData = try_from_slice_unchecked(&table_data_pda_info.data.borrow())?;
+    msg!("before table_data serialization and right after desec");
+    if table_data.is_on_lobby{
+        msg!("table data indicates table is already on the lobby, an issue stems there");
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    table_data.is_on_lobby = true;
+
+    table_data.serialize(&mut &mut table_data_pda_info.data.borrow_mut()[..])?;
+
+    if !authorizer_account_info.is_signer{
+        msg!("authorizer is not signer");
+        Err(ProgramError::Custom(100))?
+    }
+    let (authorizer_pda, _authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], &global_repo::lounge::id());
+    // let authorizer_signers_seeds: &[&[u8]; 2] = &[b"authorizer_pda", &[authorizer_pda_bump]];
+    if &authorizer_pda != authorizer_account_info.key {
+        msg!("authorizer sent does not seem to have the appropriate permissions");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+
+    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"table_mint_authority_pda"], program_id);
+    let signers_seeds: &[&[u8]; 2] = &[b"table_mint_authority_pda", &[mint_authority_bump]];
+    if &mint_authority_pda != table_mint_authority_info.key {
+        msg!("mint authorities do not match on lock_table");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    invoke_signed(
+        &freeze_account(&token_program_info.key, &table_mint_associated_account_info.key, &table_mint_account_info.key, &table_mint_authority_info.key, &[])?,
+        &[
+            table_mint_associated_account_info.clone(),
+            table_mint_account_info.clone(),
+            table_mint_authority_info.clone(),
+        ],
+        &[signers_seeds]
+    )?;
+
+    Ok(())
+}
+
+fn unlock_table(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
+    let account_info_iter = &mut accounts.iter();
+
+    // let payer_account_info = next_account_info(account_info_iter)?;
+    let authorizer_account_info = next_account_info(account_info_iter)?;
+    let table_mint_account_info = next_account_info(account_info_iter)?;
+    let table_mint_authority_info = next_account_info(account_info_iter)?;
+    let table_mint_associated_account_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+    let table_data_pda_info = next_account_info(account_info_iter)?;
+
+    let mut table_data: TableData = try_from_slice_unchecked(&table_data_pda_info.data.borrow())?;
+
+    if !table_data.is_on_lobby{
+        msg!("table data indicates table is already on the lobby, an issue stems there");
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    table_data.is_on_lobby = false;
+
+    table_data.serialize(&mut &mut table_data_pda_info.data.borrow_mut()[..])?;
+
+    if !authorizer_account_info.is_signer{
+        msg!("authorizer is not signer");
+        Err(ProgramError::Custom(100))?
+    }
+    let (authorizer_pda, _authorizer_pda_bump) = Pubkey::find_program_address(&[b"authorizer_pda"], &global_repo::lounge::id());
+    // let authorizer_signers_seeds: &[&[u8]; 2] = &[b"authorizer_pda", &[authorizer_pda_bump]];
+    if &authorizer_pda != authorizer_account_info.key {
+        msg!("authorizer sent does not seem to have the appropriate permissions");
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let (mint_authority_pda, mint_authority_bump) = Pubkey::find_program_address(&[b"table_mint_authority_pda"], program_id);
+    let signers_seeds: &[&[u8]; 2] = &[b"table_mint_authority_pda", &[mint_authority_bump]];
+    if &mint_authority_pda != table_mint_authority_info.key {
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    invoke_signed(
+        &thaw_account(&token_program_info.key, &table_mint_associated_account_info.key, &table_mint_account_info.key, &table_mint_authority_info.key, &[])?,
+        &[
+            table_mint_associated_account_info.clone(),
+            table_mint_account_info.clone(),
+            table_mint_authority_info.clone(),
+        ],
+        &[signers_seeds]
+    )?;
+
+
+    Ok(())
+}
+
 // fn num_to_burn(rarity:u8) -> Result<u8, ProgramError>{
 //  // Ok(255)
 //     match rarity{
@@ -913,6 +1005,8 @@ fn create_table_sales_account(program_id: &Pubkey, accounts: &[AccountInfo] ) ->
 //         _=>{Err(ProgramError::InvalidInstructionData)?}
 //     }
 // }
+
+
 
 fn burn_nft(_program_id: &Pubkey, _accounts: &[AccountInfo], _rarity: u8)-> ProgramResult{
     Ok(())
@@ -975,24 +1069,28 @@ pub fn process_instructions(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-        let instruction = InstructionEnum::decode(instruction_data)?;
+        let instruction = TableInstructionEnum::decode(instruction_data)?;
 
         // msg!("{:?}", instruction);
 
         match instruction {
 
-            InstructionEnum::InitTable{governor_reward, payer_bump} =>{
+            TableInstructionEnum::InitTable{governor_reward, payer_bump} =>{
                 // msg!("{:?}",(governor_reward, payer_bump));
                 init_mint(program_id, accounts, governor_reward, payer_bump)
             }
-            InstructionEnum::SignTableMint => {
+            TableInstructionEnum::SignTableMint => {
                 sign_table_mint(program_id, accounts)
             }   
-            InstructionEnum::CreateTableSalesAccount =>{create_table_sales_account(program_id, accounts)}
+            TableInstructionEnum::CreateTableSalesAccount =>{create_table_sales_account(program_id, accounts)}
 
-            InstructionEnum::BurnNFTs{rarity} => {burn_nft(program_id, accounts, rarity)}
+            TableInstructionEnum::BurnNFTs{rarity} => {burn_nft(program_id, accounts, rarity)}
 
-            InstructionEnum::MintTable{payer_bump} => {mint_table(program_id, accounts, payer_bump)}
+            TableInstructionEnum::MintTable{payer_bump} => {mint_table(program_id, accounts, payer_bump)}
+
+            TableInstructionEnum::LockTable => {lock_table(program_id, accounts)}
+
+            TableInstructionEnum::UnlockTable => {unlock_table(program_id, accounts)}
         }
 }
 
