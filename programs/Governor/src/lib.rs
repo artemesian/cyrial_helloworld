@@ -13,12 +13,14 @@ use solana_program::{
     system_instruction,
     sysvar::{rent::Rent, Sysvar},
     program_error::ProgramError, program_pack::Pack,
+    stake::state::Authorized,
 };
 use spl_associated_token_account::{create_associated_token_account, get_associated_token_address};
 use spl_token::{instruction::*,state::Account};
 use metaplex_token_metadata::{instruction, state::{Creator, Metadata}};
 use metaplex_token_metadata::id;
 extern crate global_repo;
+use solana_stake_program::{self, stake_state::{Lockup, StakeState}};
 
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
@@ -513,6 +515,7 @@ pub enum InstructionEnum{
     TakeLoan{amount: u64, storage_bump: u32}, 
     PayLoan{amount: u64, storage_bump: u32}, 
     BorrowMore{amount: u64, storage_bump: u32},
+    StakeToValidator,
 }
 
 
@@ -1118,7 +1121,53 @@ fn borrow_more(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, stora
     Ok(())
 }
 
+fn stake(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
 
+    let payer_account_info = next_account_info(account_info_iter)?;
+    let admin_account_info = next_account_info(account_info_iter)?;
+    let stake_account_info = next_account_info(account_info_iter)?;
+    let vote_account_info = next_account_info(account_info_iter)?;
+    let vault_account_info = next_account_info(account_info_iter)?;
+    let sysvar_rent_account_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
+    let sysvar_stake_history_info = next_account_info(account_info_iter)?;
+    let stake_program_info = next_account_info(account_info_iter)?;
+
+    if !admin_account_info.is_signer || *admin_account_info.key != Pubkey::from_str("7xhiCThbECSxgc582AFUwTEkLSUqfcsBeyWLQd2o9p2k").unwrap(){
+        Err(GlobalError::KeypairNotEqual)?
+    }
+    let (vault, vault_bump) = Pubkey::find_program_address(&[b"Governor_Vault"], program_id);
+    if vault != *vault_account_info.key {
+        msg!("Vault pda's don't match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
+
+    let authorized = &Authorized{staker :*vault_account_info.key, withdrawer: *vault_account_info.key};
+    let lockup =  &Lockup{unix_timestamp: 0, epoch: 0, custodian: *admin_account_info.key};
+    
+    // let lamports = Rent::get()?.minimum_balance(std::mem::size_of::<StakeState>() as usize);
+    invoke_signed(
+        &system_instruction::create_account(vault_account_info.key, stake_account_info.key, 1e9 as u64, std::mem::size_of::<StakeState>() as u64, &solana_stake_program::id() ),
+        &[],
+        &[&[b"Governor_Vault", &[vault_bump]]]
+    )?;
+
+    invoke(
+        &solana_stake_program::stake_instruction::initialize(stake_account_info.key, authorized, lockup ),
+        &[stake_account_info.clone(), sysvar_rent_account_info.clone()]
+    )?;
+
+    invoke_signed(
+    &solana_stake_program::stake_instruction::delegate_stake(stake_account_info.key, vault_account_info.key, vote_account_info.key),
+    &[stake_account_info.clone(), vote_account_info.clone(), sysvar_clock_info.clone(), sysvar_stake_history_info.clone(), stake_program_info.clone(), vault_account_info.clone()],
+        &[&[b"Governor_Vault", &[vault_bump]]]
+    )?;
+
+
+
+    Ok(())
+}
 
 pub fn process_instructions(
     program_id: &Pubkey,
@@ -1142,6 +1191,7 @@ pub fn process_instructions(
             InstructionEnum::TakeLoan {amount, storage_bump } => {take_loan(program_id, accounts, amount, storage_bump)},
             InstructionEnum::PayLoan {amount, storage_bump} => {pay_loan(program_id, accounts, amount, storage_bump)},
             InstructionEnum::BorrowMore {amount, storage_bump} => {borrow_more(program_id, accounts, amount, storage_bump)},
+            InstructionEnum::StakeToValidator => {stake(program_id, accounts)}
         }
 }
 
