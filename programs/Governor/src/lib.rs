@@ -13,14 +13,14 @@ use solana_program::{
     system_instruction,
     sysvar::{rent::Rent, Sysvar},
     program_error::ProgramError, program_pack::Pack,
-    stake::state::Authorized,
+    stake::state::{Authorized, Lockup, StakeState},
 };
 use spl_associated_token_account::{create_associated_token_account, get_associated_token_address};
 use spl_token::{instruction::*,state::Account};
 use metaplex_token_metadata::{instruction, state::{Creator, Metadata}};
 use metaplex_token_metadata::id;
 extern crate global_repo;
-use solana_stake_program::{self, stake_state::{Lockup, StakeState}};
+// use solana_stake_program::{stake_state::{Lockup, StakeState}};
 
 
 // use solana_sdk::{borsh::try_from_slice_unchecked};
@@ -538,6 +538,7 @@ impl InstructionEnum{
                 let total = ((get_num_cnt(&data[1..4]) as f32 +get_num_cnt(&data[4..7]) as f32 / 1000.0) * 1e9) as u64;
                 msg!("Total before multiplication: {:?} <---> Num_Cnt_1: {:?}, <---> Num_Cnt_2 {:?}", total, get_num_cnt(&data[1..4]) as f32 , get_num_cnt(&data[4..7]));
             Ok(Self::BorrowMore{amount:total, storage_bump: get_num_cnt(&data[7..10])})}
+            7 => {Ok(Self::StakeToValidator)}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -1124,7 +1125,6 @@ fn borrow_more(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64, stora
 fn stake(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
-    let payer_account_info = next_account_info(account_info_iter)?;
     let admin_account_info = next_account_info(account_info_iter)?;
     let stake_account_info = next_account_info(account_info_iter)?;
     let vote_account_info = next_account_info(account_info_iter)?;
@@ -1133,6 +1133,7 @@ fn stake(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     let sysvar_stake_history_info = next_account_info(account_info_iter)?;
     let stake_program_info = next_account_info(account_info_iter)?;
+    let stake_config_program_info = next_account_info(account_info_iter)?;
 
     if !admin_account_info.is_signer || *admin_account_info.key != Pubkey::from_str("7xhiCThbECSxgc582AFUwTEkLSUqfcsBeyWLQd2o9p2k").unwrap(){
         Err(GlobalError::KeypairNotEqual)?
@@ -1147,20 +1148,21 @@ fn stake(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let lockup =  &Lockup{unix_timestamp: 0, epoch: 0, custodian: *admin_account_info.key};
     
     // let lamports = Rent::get()?.minimum_balance(std::mem::size_of::<StakeState>() as usize);
+    msg!("creating account");
     invoke_signed(
-        &system_instruction::create_account(vault_account_info.key, stake_account_info.key, 1e9 as u64, std::mem::size_of::<StakeState>() as u64, &solana_stake_program::id() ),
-        &[],
+        &system_instruction::create_account(vault_account_info.key, stake_account_info.key, 1e9 as u64, std::mem::size_of::<StakeState>() as u64, stake_program_info.key ),
+        &[vault_account_info.clone(), stake_account_info.clone()],
         &[&[b"Governor_Vault", &[vault_bump]]]
     )?;
-
+    msg!("Initializing stake");
     invoke(
-        &solana_stake_program::stake_instruction::initialize(stake_account_info.key, authorized, lockup ),
+        &solana_program::stake::instruction::initialize(stake_account_info.key, authorized, lockup ),
         &[stake_account_info.clone(), sysvar_rent_account_info.clone()]
     )?;
-
+    msg!("delegating stake");
     invoke_signed(
-    &solana_stake_program::stake_instruction::delegate_stake(stake_account_info.key, vault_account_info.key, vote_account_info.key),
-    &[stake_account_info.clone(), vote_account_info.clone(), sysvar_clock_info.clone(), sysvar_stake_history_info.clone(), stake_program_info.clone(), vault_account_info.clone()],
+        &solana_program::stake::instruction::delegate_stake(stake_account_info.key, vault_account_info.key, vote_account_info.key),
+    &[stake_account_info.clone(), vote_account_info.clone(), sysvar_clock_info.clone(), sysvar_stake_history_info.clone(), stake_config_program_info.clone(), vault_account_info.clone()],
         &[&[b"Governor_Vault", &[vault_bump]]]
     )?;
 

@@ -51,6 +51,10 @@ struct AvatarSales{
 struct PayerStorage{
     account_storage_data: u32,
     rent_listings: Vec<RentListing>,
+    total_hands_played: u64,
+    last_5weak_hands: u32,
+    last_claim_date: u64,
+    player_rating: u32,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -560,7 +564,7 @@ fn mint_nft(program_id: &Pubkey, accounts: &[AccountInfo], selected_rarity: Opti
 enum InstructionEnum{
     MintNft,
     UnlockMint,
-    ClaimXp{xp_claims:Vec<u32>},
+    ClaimXp{xp_claims:Vec<u32>, recent_hands: u32, player_rating: u32},
     CreateSalesAccount,
     BurnNFTs{rarity: u8},
     LeaseAvatar{
@@ -748,19 +752,21 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
 
     let payer_account_info = next_account_info(account_info_iter)?;
-    let admin_account_info = next_account_info(account_info_iter)?;
     let mint_account_info = next_account_info(account_info_iter)?;
     let avatar_data_pda_info = next_account_info(account_info_iter)?;
     let rent_container_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     let account_rent_space_info = next_account_info(account_info_iter)?;
     let mint_owner_info = next_account_info(account_info_iter)?;
+    let payer_storage_info = next_account_info(account_info_iter)?;
 
-
-    if !admin_account_info.is_signer || *admin_account_info.key != Pubkey::from_str("2ZHc9QxDDaJwqNEFzpAGUrvxCWZSNnXSffHxV9hG2axp").unwrap(){
-        msg!("Admin never signed transaction");
+    let (payer_storage_pda, _) = Pubkey::find_program_address(&[b"payer_storage_location", &payer_account_info.key.to_bytes()], program_id);
+    if payer_storage_pda != *payer_storage_info.key {
+        msg!("Payer storage pdas do not match");
         Err(GlobalError::KeypairNotEqual)?
     }
+    let payer_storage_data: PayerStorage = try_from_slice_unchecked(&payer_storage_info.data.borrow())?;
+
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     let current_timestamp = clock.unix_timestamp as u32;
 
@@ -829,6 +835,11 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
             &system_instruction::transfer(payer_account_info.key, &Pubkey::new_from_array(rent_container_data.owner),(rent_container_data.rent_price * 10e8) as u64),
             &[payer_account_info.clone(), mint_owner_info.clone()]
         )?;
+    }
+
+    if rent_container_data.cummulative_5week_hands > payer_storage_data.last_5weak_hands || rent_container_data.required_rating > payer_storage_data.player_rating{
+        msg!("Required rating of renter not met");
+        Err(ProgramError::InvalidAccountData)?
     }
 
     avatar_data.unlockable_date = current_timestamp + rent_container_data.duration as u32;
@@ -1136,10 +1147,13 @@ impl InstructionEnum{
                 let mut xp_claims: Vec<u32> = Vec::new();
                 for i in 0..num_mints{
                     let ind = i as usize * (3) + 1 + 3;
-                    let total_increase = get_num_cnt(&data[ind+32 .. ind+32+3]);
+                    let total_increase = get_num_cnt(&data[ind .. ind+3]);
                     xp_claims.push(total_increase);
                 }
-                Ok(Self::ClaimXp{xp_claims:xp_claims})}
+                let ind = num_mints as usize* (3) + (if num_mints == 0 {1} else {4}) + 3;
+                let recent_hands = get_num_cnt(&data[ind..ind+3]);
+                let player_rating = get_num_cnt(&data[ind+3 .. ind+6]);
+                Ok(Self::ClaimXp{xp_claims:xp_claims, recent_hands: recent_hands, player_rating: player_rating})}
             3 => {Ok(Self::CreateSalesAccount)}
             4 => {Ok(Self::BurnNFTs{rarity: data[1]})}
             5 => {
@@ -1240,20 +1254,24 @@ fn create_payer_storage_account(program_id: &Pubkey, accounts: &[AccountInfo] ) 
         &system_instruction::create_account(
             &payer_account_info.key,
             &payer_storage_info.key,
-            Rent::get()?.minimum_balance(200),
-            8000,
+            Rent::get()?.minimum_balance(300),
+            300,
             &program_id,
         ),
         &[payer_account_info.clone(), payer_storage_info.clone()],
         &[
-            &[b"payer_storage_location", &payer_account_info.key.to_bytes(), &[storage_bump]]
-                ]
-    )?;
-
-
-    let payer_storage_data = PayerStorage{
+                &[b"payer_storage_location", &payer_account_info.key.to_bytes(), &[storage_bump]]
+                    ]
+        )?;
+        
+        let payer_storage_data = PayerStorage{
+        
         account_storage_data: 0,
         rent_listings: Vec::new(),
+        total_hands_played: 0,
+        last_5weak_hands: 0,
+        last_claim_date: 0,
+        player_rating: 0,
     };
 
     payer_storage_data.serialize(&mut &mut payer_storage_info.data.borrow_mut()[..])?;
@@ -1411,14 +1429,36 @@ fn unlock_account(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     Ok(())
 }
 
-fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>) -> ProgramResult{
+fn claim_xp(program_id: &Pubkey, accounts: &[AccountInfo], xp_claims: Vec<u32>, recent_hands: u32, player_rating: u32) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
     
     let payer_account_info = next_account_info(account_info_iter)?;
+    let admin_account_info = next_account_info(account_info_iter)?;
+    let payer_storage_info = next_account_info(account_info_iter)?;
+    let sysvar_clock_info = next_account_info(account_info_iter)?;
 
-    if !payer_account_info.is_signer || payer_account_info.key !=  &Pubkey::from_str("2ASw3tjK5bSxQxFEMsM6J3DnBozNh7drVErSwc7AtzJv").unwrap(){
+    let clock = Clock::from_account_info(&sysvar_clock_info)?;
+    // Getting timestamp
+    let current_timestamp = clock.unix_timestamp as u64;
+
+    let (payer_storage_pda, _) = Pubkey::find_program_address(&[b"payer_storage_location", &payer_account_info.key.to_bytes()], program_id);
+    if payer_storage_pda != *payer_storage_info.key {
+        msg!("Payer storage pdas do not match");
         Err(GlobalError::KeypairNotEqual)?
     }
+
+
+    if !payer_account_info.is_signer || !admin_account_info.is_signer || admin_account_info.key !=  &Pubkey::from_str("7xhiCThbECSxgc582AFUwTEkLSUqfcsBeyWLQd2o9p2k").unwrap(){
+        Err(ProgramError::InvalidAccountData)?
+    }
+
+    let mut payer_storage_data: PayerStorage = try_from_slice_unchecked(&payer_storage_info.data.borrow())?;
+
+    payer_storage_data.last_5weak_hands = recent_hands;
+    payer_storage_data.player_rating = player_rating;
+    payer_storage_data.last_claim_date = current_timestamp;
+    payer_storage_data.total_hands_played += recent_hands as u64;
+    payer_storage_data.serialize(&mut &mut payer_storage_info.data.borrow_mut()[..])?;
 
     for to_increase_by in 0..xp_claims.len(){
 
@@ -1549,8 +1589,8 @@ pub fn process_instructions(
                 unlock_account(program_id, accounts)
             }   
 
-            InstructionEnum::ClaimXp{xp_claims} =>{
-                claim_xp(program_id, accounts, xp_claims)
+            InstructionEnum::ClaimXp{xp_claims, recent_hands, player_rating} =>{
+                claim_xp(program_id, accounts, xp_claims, recent_hands, player_rating)
             }
             InstructionEnum::CreateSalesAccount =>{create_sales_account(program_id, accounts)}
 

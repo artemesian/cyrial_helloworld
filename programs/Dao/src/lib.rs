@@ -10,7 +10,7 @@ use solana_program::{
     program_error::ProgramError,
     // program_pack::Pack,
     msg,
-    system_instruction, borsh::try_from_slice_unchecked, clock::Clock, sysvar::Sysvar, program::invoke_signed, rent::Rent, program_pack::Pack,
+    system_instruction, borsh::try_from_slice_unchecked, clock::Clock, sysvar::Sysvar, program::{invoke_signed, invoke}, rent::Rent, program_pack::Pack,
 };
 
 extern crate global_repo;
@@ -60,7 +60,7 @@ struct Proposal{
     proposal_pda: [u8;32],
     proposal: String,
     choices: String,
-    max_vote_bump: u32,
+    max_vote_bump: u32,  //TODO: max_vot_bump needs to be scrapped out.
     proposal_governor_id: [u8;32],
     duration: u64,
     ending_date: u64,
@@ -82,7 +82,11 @@ impl InstructionEnum {
                 let choice_len = 30;
                 let proposal =  String::from(std::str::from_utf8(&data[1..proposal_len+1]).expect("data conversion or proposal to str failed"));
                 let choices = String::from(std::str::from_utf8(&data[proposal_len+ 1 .. proposal_len + 1 + 5*choice_len]).expect("data conversion of choice {i} failed"));
-                let duration = get_num_cnt(&data[proposal_len + 1 + 5*choice_len .. proposal_len + 1 + 5*choice_len + 3]) as u64 * 86400;
+                let mut duration = get_num_cnt(&data[proposal_len + 1 + 5*choice_len .. proposal_len + 1 + 5*choice_len + 3]) as u64;
+                if duration < 30 {
+                    Err(ProgramError::InvalidInstructionData)?
+                }
+                duration = duration * 86400;
                 msg!("Logging right before return of enum decoding on instruction 1");
                 Ok(Self::CreateProposal{proposal, choices, duration})}
             2 => {
@@ -110,6 +114,12 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
     let sysvar_clock_info = next_account_info(account_info_iter)?;
     let metadata_account_info = next_account_info(account_info_iter)?;
     let governor_associated_info = next_account_info(account_info_iter)?;
+    let vault_account_info = next_account_info(account_info_iter)?;
+
+    if *vault_account_info.key != global_repo::governor::vault::id(){
+        msg!("vaults info does not match");
+        Err(GlobalError::KeypairNotEqual)?
+    }
     
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     let current_timestamp = clock.unix_timestamp as u64;
@@ -199,12 +209,16 @@ fn create_proposal(program_id: &Pubkey, accounts: &[AccountInfo], proposal: Stri
     proposals.proposal_id += 1;
     proposals.serialize(&mut &mut proposals_info.data.borrow_mut()[..])?;
 
+    invoke(
+        &system_instruction::transfer(&payer_account_info.key, &global_repo::governor::vault::id(), (0.25e9) as u64),
+        &[payer_account_info.clone(), vault_account_info.clone()]
+    )?;
     
     Ok(())
 }
 
 
-fn vote(_program_id: &Pubkey, accounts: &[AccountInfo], all_votes:Vec<[u8; 5]>) -> ProgramResult{
+fn vote(program_id: &Pubkey, accounts: &[AccountInfo], all_votes:Vec<[u8; 5]>) -> ProgramResult{
     let account_info_iter = &mut accounts.iter();
     //msg!("D_SOL_DAO_LOF:   1");
     let payer_account_info = next_account_info(account_info_iter)?;
@@ -272,10 +286,11 @@ fn vote(_program_id: &Pubkey, accounts: &[AccountInfo], all_votes:Vec<[u8; 5]>) 
             msg!("Balance of governor not 1 in associated token account sent");
             Err(ProgramError::Custom(1))?
         }
-        proposal.max_vote_bump +=1;
+        proposal.max_vote_bump +=1; //TODO: max_vot_bump needs to be scrapped out.
 
     }
     proposal.serialize(&mut &mut proposal_pda_info.data.borrow_mut()[..])?;
+    process_result(program_id, &[proposal_pda_info.clone()])?;
 
 
     Ok(())
