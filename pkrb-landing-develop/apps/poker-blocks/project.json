@@ -1,0 +1,6 @@
+{
+  "root": "apps/poker-blocks",
+  "sourceRoot": "apps/poker-blocks/src",
+  "projectType": "application",
+  "tags": []
+}

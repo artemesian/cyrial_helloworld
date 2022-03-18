@@ -1,0 +1,73 @@
+{
+  "root": "apps/decentsol",
+  "sourceRoot": "apps/decentsol/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/web:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "compiler": "babel",
+        "outputPath": "dist/apps/decentsol",
+        "index": "apps/decentsol/src/index.html",
+        "baseHref": "/",
+        "main": "apps/decentsol/src/main.tsx",
+        "polyfills": "apps/decentsol/src/polyfills.ts",
+        "tsConfig": "apps/decentsol/tsconfig.app.json",
+        "assets": [
+          "apps/decentsol/src/favicon.ico",
+          "apps/decentsol/src/assets"
+        ],
+        "styles": ["apps/decentsol/src/styles.css"],
+        "scripts": [],
+        "webpackConfig": "@nrwl/react/plugins/webpack"
+      },
+      "configurations": {
+        "production": {
+          "fileReplacements": [
+            {
+              "replace": "apps/decentsol/src/environments/environment.ts",
+              "with": "apps/decentsol/src/environments/environment.prod.ts"
+            }
+          ],
+          "optimization": true,
+          "outputHashing": "all",
+          "sourceMap": false,
+          "namedChunks": false,
+          "extractLicenses": true,
+          "vendorChunk": false
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/web:dev-server",
+      "options": {
+        "buildTarget": "decentsol:build",
+        "hmr": true
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "decentsol:build:production",
+          "hmr": false
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/decentsol/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/decentsol"],
+      "options": {
+        "jestConfig": "apps/decentsol/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

@@ -49,12 +49,16 @@ struct AvatarSales{
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct PayerStorage{
-    account_storage_data: u32,
+    payer_max_id: u32,
     rent_listings: Vec<RentListing>,
     total_hands_played: u64,
     last_5weak_hands: u32,
     last_claim_date: u64,
     player_rating: u32,
+    mint_id: [u8; 32],
+    nft_owner: [u8; 32],
+    container_bump: u32, 
+    state: bool,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -86,15 +90,6 @@ struct RentContainerData{
     cummulative_5week_hands: u32,
 }
 
-
-#[derive(BorshSerialize, BorshDeserialize)]
-struct AccountRentSpace{
-    struct_id: u32,
-    state: bool,
-    nft_owner: [u8;32],
-    mint_id: [u8;32],
-    container_bump: u32,
-}
 
 
 fn get_num_cnt(arr: &[u8]) -> u32 {
@@ -579,7 +574,6 @@ enum InstructionEnum{
     EndRent,
     CreateVaultDsolTokenAccount,
     CreatePayerStorageAccount,
-    CreateAccountRentSpace,
 }
 
 fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, rent_price: f32, earnings_percentage: f32, cummulative_5week_hands: u32, required_rating: u32) -> ProgramResult{
@@ -663,7 +657,7 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     }
 
     
-    let container_unique_bump = payer_storage_data.account_storage_data;
+    let container_unique_bump = payer_storage_data.payer_max_id;
     let (container_pda, container_pda_bump) = Pubkey::find_program_address( &[b"Rentable_marketplace", &payer_account_info.key.to_bytes(), &container_unique_bump.to_be_bytes()], program_id);
     let container_seed: &[&[u8]] = &[b"Rentable_marketplace", &payer_account_info.key.to_bytes(), &container_unique_bump.to_be_bytes(), &[container_pda_bump]];
 
@@ -718,19 +712,19 @@ fn lease_avatar(program_id: &Pubkey, accounts: &[AccountInfo], duration:u64, ren
     collection_data.rent_listings.push(
         RentListing{
             payer: payer_account_info.key.to_bytes(),
-            bump: payer_storage_data.account_storage_data,
+            bump: payer_storage_data.payer_max_id,
         }
     );
 
     payer_storage_data.rent_listings.push(
         RentListing{
             payer: payer_account_info.key.to_bytes(),
-            bump: payer_storage_data.account_storage_data,
+            bump: payer_storage_data.payer_max_id,
         }
     );
 
 
-    payer_storage_data.account_storage_data += 1;
+    payer_storage_data.payer_max_id += 1;
     payer_storage_data.serialize(&mut &mut payer_storage_info.data.borrow_mut()[..])?;
     collection_data.serialize(&mut &mut sales_pda_info.data.borrow_mut()[..])?;
 
@@ -756,7 +750,6 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     let avatar_data_pda_info = next_account_info(account_info_iter)?;
     let rent_container_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
-    let account_rent_space_info = next_account_info(account_info_iter)?;
     let mint_owner_info = next_account_info(account_info_iter)?;
     let payer_storage_info = next_account_info(account_info_iter)?;
 
@@ -765,7 +758,7 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         msg!("Payer storage pdas do not match");
         Err(GlobalError::KeypairNotEqual)?
     }
-    let payer_storage_data: PayerStorage = try_from_slice_unchecked(&payer_storage_info.data.borrow())?;
+    let mut payer_storage_data: PayerStorage = try_from_slice_unchecked(&payer_storage_info.data.borrow())?;
 
     let clock = Clock::from_account_info(&sysvar_clock_info)?;
     let current_timestamp = clock.unix_timestamp as u32;
@@ -775,13 +768,6 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
         Err(GlobalError::KeypairNotEqual)?
     }
 
-
-    let (account_rent_pda, _account_rent_pda_bump) = Pubkey::find_program_address(&[b"account_rent_space", &payer_account_info.key.to_bytes()], program_id);
-
-    if account_rent_pda != *account_rent_space_info.key{
-        msg!("account rent space pdas do not match");
-        Err(ProgramError::Custom(1))?
-    }
 
     let avatar_data_pda_seed: &[&[u8]; 2] = &[
         b"avatar_data_pda",
@@ -847,30 +833,17 @@ fn rent_avatar(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult{
     avatar_data.rented_state = true;
     rent_container_data.renter = payer_account_info.key.to_bytes();
     rent_container_data.ending_date = current_timestamp as u64 + rent_container_data.duration;
-    let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
 
-    if match StructId::decode(temp_account_rent_data.struct_id)?{
-        StructId::AccountRentSpace0_0_1=> {false}
-        _ => {
-                true
-        }
-    } {
-        Err(GlobalError::InvalidStructId)?
-    }
-
-    if temp_account_rent_data.state{
+    if payer_storage_data.state{
         msg!("Might need to end current rent session. Rent space already allocated.");
         Err(ProgramError::Custom(3))?
     }
-    let account_rent_data = AccountRentSpace{
-        struct_id: StructId::encode(StructId::AccountRentSpace0_0_1)?,
-        state: true,
-        nft_owner: rent_container_data.owner,
-        mint_id: mint_account_info.key.to_bytes(),
-        container_bump: avatar_data.rent_bump,
-    };
+        payer_storage_data.state = true;
+        payer_storage_data.nft_owner = rent_container_data.owner;
+        payer_storage_data.mint_id = mint_account_info.key.to_bytes();
+        payer_storage_data.container_bump = avatar_data.rent_bump;
 
-    account_rent_data.serialize(&mut &mut account_rent_space_info.data.borrow_mut()[..])?;
+    payer_storage_data.serialize(&mut &mut payer_storage_info.data.borrow_mut()[..])?;
     avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     rent_container_data.serialize(&mut &mut rent_container_pda_info.data.borrow_mut()[..])?;
 
@@ -1038,7 +1011,7 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let avatar_data_pda_info = next_account_info(account_info_iter)?;
     let rent_container_pda_info = next_account_info(account_info_iter)?;
     let sysvar_clock_info = next_account_info(account_info_iter)?;
-    let account_rent_space_info = next_account_info(account_info_iter)?;
+    let payer_storage_info = next_account_info(account_info_iter)?;
     let mint_owner_info = next_account_info(account_info_iter)?;
 
 
@@ -1050,11 +1023,13 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     }
 
 
-    let (account_rent_pda, _account_rent_pda_bump) = Pubkey::find_program_address(&[b"account_rent_space", &payer_account_info.key.to_bytes()], program_id);
-
-    if account_rent_pda != *account_rent_space_info.key{
-        Err(ProgramError::Custom(1))?
+    let (payer_storage_pda, _) = Pubkey::find_program_address(&[b"payer_storage_location", &payer_account_info.key.to_bytes()], program_id);
+    if payer_storage_pda != *payer_storage_info.key {
+        msg!("Payer storage pdas do not match");
+        Err(GlobalError::KeypairNotEqual)?
     }
+    let mut payer_storage_data: PayerStorage = try_from_slice_unchecked(&payer_storage_info.data.borrow())?;
+
 
     let avatar_data_pda_seed: &[&[u8]; 2] = &[
         b"avatar_data_pda",
@@ -1106,34 +1081,20 @@ fn end_rent(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     avatar_data.rented_state = false;
     rent_container_data.state = false;
     rent_container_data.ending_date = current_timestamp as u64;
-    let temp_account_rent_data:AccountRentSpace = try_from_slice_unchecked(&account_rent_space_info.data.borrow())?;
 
-    if match StructId::decode(temp_account_rent_data.struct_id)?{
-        StructId::AccountRentSpace0_0_1=> {false}
-        _ => {
-                true
-        }
-    } {
-        Err(GlobalError::InvalidStructId)?
-    }
-
-    if !temp_account_rent_data.state{
+    if !payer_storage_data.state{
         Err(ProgramError::Custom(3))?
     }
-    let account_rent_data = AccountRentSpace{
-        struct_id: StructId::encode(StructId::AccountRentSpace0_0_1)?,
-        state: false,
-        nft_owner: rent_container_data.owner,
-        mint_id: mint_account_info.key.to_bytes(),
-        container_bump: avatar_data.rent_bump,
-    };
+    payer_storage_data.state = false;
+    payer_storage_data.nft_owner = rent_container_data.owner;
+    payer_storage_data.mint_id = mint_account_info.key.to_bytes();
+    payer_storage_data.container_bump = avatar_data.rent_bump;
 
-    account_rent_data.serialize(&mut &mut account_rent_space_info.data.borrow_mut()[..])?;
+
+    payer_storage_data.serialize(&mut &mut payer_storage_info.data.borrow_mut()[..])?;
     avatar_data.serialize(&mut &mut avatar_data_pda_info.data.borrow_mut()[..])?;
     rent_container_data.serialize(&mut &mut rent_container_pda_info.data.borrow_mut()[..])?;
-
-
-    
+ 
     Ok(())
 }
 
@@ -1174,7 +1135,6 @@ impl InstructionEnum{
             8 => {Ok(Self::EndRent)}
             9 => {Ok(Self::CreateVaultDsolTokenAccount)}
             10 => {Ok(Self::CreatePayerStorageAccount)}
-            11 => {Ok(Self::CreateAccountRentSpace)}
             _ => {Err(ProgramError::InvalidInstructionData)}
         }
     }
@@ -1266,60 +1226,19 @@ fn create_payer_storage_account(program_id: &Pubkey, accounts: &[AccountInfo] ) 
         
         let payer_storage_data = PayerStorage{
         
-        account_storage_data: 0,
+        payer_max_id: 11,
         rent_listings: Vec::new(),
         total_hands_played: 0,
         last_5weak_hands: 0,
         last_claim_date: 0,
         player_rating: 0,
+        mint_id: payer_account_info.key.to_bytes(),
+        nft_owner: payer_account_info.key.to_bytes(),
+        state: false,
+        container_bump: 0,
     };
 
     payer_storage_data.serialize(&mut &mut payer_storage_info.data.borrow_mut()[..])?;
-
-    Ok(())
-}
-
-fn create_account_rent_space(program_id: &Pubkey, accounts: &[AccountInfo] ) -> ProgramResult{
-
-    let account_info_iter = &mut accounts.iter();
-
-    let payer_account_info = next_account_info(account_info_iter)?;
-    let account_rent_space_info = next_account_info(account_info_iter)?;
-    
-    if !payer_account_info.is_signer{
-        Err(GlobalError::KeypairNotEqual)?
-    }
-    let (account_rent_pda, account_rent_pda_bump) = Pubkey::find_program_address(&[b"account_rent_space", &payer_account_info.key.to_bytes()], program_id);
-
-    if account_rent_pda != *account_rent_space_info.key{
-        msg!("account rent space pdas do not match");
-        Err(ProgramError::Custom(1))?
-    }
-
-    invoke_signed(
-        &system_instruction::create_account(
-            &payer_account_info.key,
-            &account_rent_space_info.key,
-            Rent::get()?.minimum_balance(200),
-            8000,
-            &program_id,
-        ),
-        &[payer_account_info.clone(), account_rent_space_info.clone()],
-        &[
-            &[b"account_rent_space", &payer_account_info.key.to_bytes(), &[account_rent_pda_bump]]
-                ]
-    )?;
-
-
-    let account_storage_data = AccountRentSpace{
-        struct_id: StructId::encode(StructId::AccountRentSpace0_0_1)?,
-        nft_owner: payer_account_info.key.to_bytes(),
-        mint_id: payer_account_info.key.to_bytes(),
-        container_bump: 0,
-        state: false,
-    };
-
-    account_storage_data.serialize(&mut &mut account_rent_space_info.data.borrow_mut()[..])?;
 
     Ok(())
 }
@@ -1607,7 +1526,6 @@ pub fn process_instructions(
             InstructionEnum::EndRent => {end_rent(program_id, accounts)},
             InstructionEnum::CreateVaultDsolTokenAccount => {create_vault_dsol_token_account(program_id, accounts)},
             InstructionEnum::CreatePayerStorageAccount => {create_payer_storage_account(program_id, accounts)},
-            InstructionEnum::CreateAccountRentSpace => {create_account_rent_space(program_id, accounts)},
         }
 }
 

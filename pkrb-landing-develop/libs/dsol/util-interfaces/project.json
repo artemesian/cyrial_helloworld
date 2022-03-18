@@ -1,0 +1,23 @@
+{
+  "root": "libs/dsol/util-interfaces",
+  "sourceRoot": "libs/dsol/util-interfaces/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/dsol/util-interfaces/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/dsol/util-interfaces"],
+      "options": {
+        "jestConfig": "libs/dsol/util-interfaces/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

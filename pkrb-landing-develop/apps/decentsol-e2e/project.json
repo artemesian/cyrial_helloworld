@@ -1,0 +1,28 @@
+{
+  "root": "apps/decentsol-e2e",
+  "sourceRoot": "apps/decentsol-e2e/src",
+  "projectType": "application",
+  "targets": {
+    "e2e": {
+      "executor": "@nrwl/cypress:cypress",
+      "options": {
+        "cypressConfig": "apps/decentsol-e2e/cypress.json",
+        "devServerTarget": "decentsol:serve"
+      },
+      "configurations": {
+        "production": {
+          "devServerTarget": "decentsol:serve:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/decentsol-e2e/**/*.{js,ts}"]
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": ["decentsol"]
+}
